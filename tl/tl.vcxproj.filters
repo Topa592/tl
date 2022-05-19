@@ -15,7 +15,10 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="tl.h">
+    <ClInclude Include="tlBasicGuiRuntime.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="tlBasicCodeEditor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
