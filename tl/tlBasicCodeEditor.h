@@ -64,15 +64,42 @@ namespace tl {
 			for (std::string line; std::getline(fs, line);) {
 				fullText += line + '\n';
 			}
+			fullText.pop_back(); //removes unneccesary linechange
 			return fullText;
 		}
 		void ReplaceWithText(const std::string& areaComment, const std::string& text, const std::string& filePath) {
 			std::fstream fs(filePath);
 			std::string fullText = FindFullText(areaComment, text, fs);
 			fs.close();
-			fs.open(filePath);
+			fs.open(filePath, std::ios::out);
 			fs << fullText;
 			fs.close();
+		}
+		void validateFile(
+			const std::string& areaComment,
+			const std::string& filePath
+		) {
+			std::string fullError = "";
+			//check for correct parameters
+			if (!std::filesystem::exists(filePath))
+				fullError += "filePath not found " + filePath + "\n";
+			if (areaComment.size() == 0)
+				fullError += "areaComment size 0 \n";
+
+			//start looking for correct areaComments in both files
+			if (std::filesystem::exists(filePath)) {
+				std::fstream fs(filePath);
+				int areaCommentCount = 0;
+				for (std::string line; std::getline(fs, line);) {
+					if (line == areaComment) areaCommentCount++;
+				}
+				if (areaCommentCount != 2)
+					fullError += "baseFile wrong count of areaComments the count is " + std::to_string(areaCommentCount) + "\n";
+			}
+
+			if (fullError.size() != 0) {
+				throw std::runtime_error(fullError);
+			}
 		}
 		//will throw on error
 		void validateFiles(const std::string& areaComment,
