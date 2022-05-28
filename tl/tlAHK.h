@@ -138,7 +138,6 @@ namespace tl {
 		}
 		
 		
-		
 		void RunExec(const std::string& ahkScriptPath) {
 			static bool firstTime = true;
 			auto time = std::chrono::steady_clock::now();
@@ -206,6 +205,7 @@ namespace tl {
 			const std::string areaComment = ";tlahkruntime1";
 			std::vector<BaseVariable> baseVariables;
 			std::vector<BaseVariable> tlVariables;
+			std::filesystem::file_time_type lastTimeThisUpdated = LastTimeModified();
 			void StartUp() {
 				Variable shutdown = GetVariableFromVector("tl_shutdown", tlVariables);
 				shutdown.value = "false";
@@ -220,9 +220,16 @@ namespace tl {
 				shutdown.value = "false";
 				UpdateAll();
 			}
+			void Suspend() {
+				Variable suspend = GetVariableFromVector("tl_suspend", tlVariables);
+				suspend.value = (suspend.value == "true") ? "false" : "true";
+				UpdateAll();
+			}
 			void ParseVariables(
 				const std::vector<std::string>& linesOfText
 			) {
+				std::vector<BaseVariable> base;
+				std::vector<BaseVariable> tl;
 				for (const std::string& line : linesOfText) {
 					BaseVariable var;
 					int state = 0;
@@ -259,40 +266,35 @@ namespace tl {
 						}
 					}
 					if (line.starts_with("tl_")) {
-						tlVariables.push_back(var);
-					} else baseVariables.push_back(var);
+						tl.push_back(var);
+					} else base.push_back(var);
 				}
+				baseVariables = base;
+				tlVariables = tl;
 			}
-			void InitializeBaseVariables() {
+			void ReInitializeBaseVariables() {
 				ParseVariables(
 					tl::ahk::parser::parseStringIntoLines(
 						tl::ahk::fileReaders::fileAreaIntoString(areaComment, script)
 					)
 				);
 			}
+			std::filesystem::file_time_type LastTimeModified() {
+				return std::filesystem::last_write_time(script);
+			}
+			bool IfFileLastTimeUpdatedByThis() {
+				return LastTimeModified() == lastTimeThisUpdated;
+			}
 		public:
 			void DrawWindow() {
 				ImGui::Begin("Crafting script");
 				if (ImGui::Button("Reload")) UpdateAll();
 				ImGui::SameLine();
-				{
-					Variable tl_shutdown = GetVariableFromVector("tl_shutdown", tlVariables);
-					if (tl_shutdown.value == "true") {
-						if (ImGui::Button("Start")) {
-							Turnon();
-						}
-					}
-					else {
-						if (ImGui::Button("Stop")) {
-							Shutdown();
-						}
-					}
-				}
-				
+				if (ImGui::Button("Start")) Turnon();
 				ImGui::SameLine();
-				if (ImGui::Button("Suspend")) {
-					Shutdown();
-				}
+				if (ImGui::Button("Stop")) Shutdown();
+				ImGui::SameLine();
+				if (ImGui::Button("Suspend")) Suspend();
 				ImGui::SameLine();
 				if (ImGui::Button("Show tlvar")) ImGui::OpenPopup("tlvar_popup");
 				if (ImGui::BeginPopup("tlvar_popup")) {
@@ -302,26 +304,30 @@ namespace tl {
 					ImGui::EndPopup();
 				}
 				for (BaseVariable& var : baseVariables) {
-					if (var.value == "") {
-						if (var.name == "") {
-							ImGui::Separator();
-							continue;
-						}
-						ImGui::Text(var.name.c_str());
+					if (var.name == "") {
+						ImGui::Separator();
+						continue;
 					}
 					else ImGui::InputText(var.name.c_str(), &var.value);
 				}
 				ImGui::End();
 			}
+			
 			void UpdateAll() {
 				std::string fullText = "";
-				fullText += tl::ahk::parser::parseBaseVariablesIntoString(tlVariables);
-				fullText += tl::ahk::parser::parseBaseVariablesIntoString(baseVariables);
-				tl::bce::ReplaceWithText(
-					areaComment,
-					fullText,
-					script
-				);
+				if (IfFileLastTimeUpdatedByThis()) {
+					fullText += tl::ahk::parser::parseBaseVariablesIntoString(tlVariables);
+					fullText += tl::ahk::parser::parseBaseVariablesIntoString(baseVariables);
+					tl::bce::ReplaceWithText(
+						areaComment,
+						fullText,
+						script
+					);
+				}
+				else {
+					ReInitializeBaseVariables();
+				}
+				lastTimeThisUpdated = LastTimeModified();
 				RunExec(script);
 			}
 			Variable GetVariable(std::string name) {
@@ -337,12 +343,23 @@ namespace tl {
 			SingleScriptRuntime2(const std::string& scriptRelativePath)
 				: script(tl::bce::RelativeToDirectPath(scriptRelativePath)) {
 				tl::bce::validateFile(areaComment, script);
-				InitializeBaseVariables();
+				ReInitializeBaseVariables();
 				StartUp();
 				UpdateAll();
 			}
 			~SingleScriptRuntime2() {
 				Shutdown();
+				Sleep(2000);
+				Variable shutdown = GetVariableFromVector("tl_shutdown", tlVariables);
+				shutdown.value = "false";
+				std::string fullText = "";
+				fullText += tl::ahk::parser::parseBaseVariablesIntoString(tlVariables);
+				fullText += tl::ahk::parser::parseBaseVariablesIntoString(baseVariables);
+				tl::bce::ReplaceWithText(
+					areaComment,
+					fullText,
+					script
+				);
 			}
 		};
 	}
