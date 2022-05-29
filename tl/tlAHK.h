@@ -137,75 +137,25 @@ namespace tl {
 			}
 		}
 		
-		
 		void RunExec(const std::string& ahkScriptPath) {
-			static bool firstTime = true;
-			auto time = std::chrono::steady_clock::now();
-			static auto time2 = std::chrono::steady_clock::now();
-			if (!firstTime && time - time2 < std::chrono::seconds(2)) std::this_thread::sleep_for(std::chrono::seconds(2));
 			ShellExecuteA(NULL, NULL, ahkScriptPath.c_str(), NULL, NULL, 0);			
-			time2 = std::chrono::steady_clock::now();
-			firstTime = false;
 		}
-		class SingleScriptRuntime {
-		private:
-			const std::string baseFile;
-			const std::string script;
-			const std::string areaComment = ";tlahkruntime1";
-			std::vector<BaseVariable> baseVariables;
-			void InitializeBaseVariables() {
-				baseVariables = tl::ahk::parser::parseStringIntoBaseVariables(
-					tl::ahk::fileReaders::fileAreaIntoString(areaComment, baseFile)
-				);
-			}
-		public:
-			void DrawWindow() {
-				ImGui::Begin("Crafting script");
-				if (ImGui::Button("Reload")) UpdateAll();
-				for (BaseVariable& var : baseVariables) {
-					ImGui::InputText(var.name.c_str(), &var.value);
-				}
-				ImGui::End();
-			}
-			void UpdateAll() {
-				tl::bce::ReplaceWithText(
-					areaComment,
-					tl::ahk::parser::parseBaseVariablesIntoString(baseVariables),
-					baseFile
-				);
-				tl::bce::RunEditor(areaComment, baseFile, script);
-				RunExec(script);
-			}
-			Variable GetVariable(std::string name) {
-				for (BaseVariable& var : baseVariables) {
-					if (var.name != name) continue;
-					return var;
-				}
-				throw std::runtime_error("Not Existing Variable name");
-			}
-			std::vector<Variable> GetAllVariables() {
-				std::vector<Variable> variables;
-				for (BaseVariable& var : baseVariables) {
-					variables.push_back(var);
-				}
-				return variables;
-			}
-			SingleScriptRuntime(const std::string& baseFileRelativePath, const std::string& scriptRelativePath)
-				: baseFile(tl::bce::RelativeToDirectPath(baseFileRelativePath))
-				, script(tl::bce::RelativeToDirectPath(scriptRelativePath)) {
-				tl::bce::validateFiles(areaComment, baseFile, script);
-				InitializeBaseVariables();
-				RunExec(script);
-			}
-		};
 
 		class SingleScriptRuntime2 {
 		private:
 			const std::string script;
+			const std::string title;
 			const std::string areaComment = ";tlahkruntime1";
 			std::vector<BaseVariable> baseVariables;
 			std::vector<BaseVariable> tlVariables;
 			std::filesystem::file_time_type lastTimeThisUpdated = LastTimeModified();
+			std::chrono::steady_clock::time_point lastTimeRanScript = std::chrono::steady_clock::now();
+			void ReOpenScript() {
+				auto time = std::chrono::steady_clock::now();
+				if (time - lastTimeRanScript < std::chrono::seconds(2)) std::this_thread::sleep_for(std::chrono::seconds(2));
+				RunExec(script);
+				lastTimeRanScript = std::chrono::steady_clock::now();
+			}
 			void StartUp() {
 				Variable shutdown = GetVariableFromVector("tl_shutdown", tlVariables);
 				shutdown.value = "false";
@@ -287,7 +237,7 @@ namespace tl {
 			}
 		public:
 			void DrawWindow() {
-				ImGui::Begin("Crafting script");
+				ImGui::Begin(title.c_str());
 				if (ImGui::Button("Reload")) UpdateAll();
 				ImGui::SameLine();
 				if (ImGui::Button("Start")) Turnon();
@@ -308,7 +258,9 @@ namespace tl {
 						ImGui::Separator();
 						continue;
 					}
-					else ImGui::InputText(var.name.c_str(), &var.value);
+					else {
+						ImGui::InputText(var.name.c_str(), &var.value);
+					}
 				}
 				ImGui::End();
 			}
@@ -328,7 +280,7 @@ namespace tl {
 					ReInitializeBaseVariables();
 				}
 				lastTimeThisUpdated = LastTimeModified();
-				RunExec(script);
+				ReOpenScript();
 			}
 			Variable GetVariable(std::string name) {
 				return GetVariableFromVector(name, baseVariables);
@@ -341,7 +293,9 @@ namespace tl {
 				return variables;
 			}
 			SingleScriptRuntime2(const std::string& scriptRelativePath)
-				: script(tl::bce::RelativeToDirectPath(scriptRelativePath)) {
+				: script(tl::bce::RelativeToDirectPath(scriptRelativePath))
+				, title(scriptRelativePath)
+			{
 				tl::bce::validateFile(areaComment, script);
 				ReInitializeBaseVariables();
 				StartUp();
@@ -349,7 +303,7 @@ namespace tl {
 			}
 			~SingleScriptRuntime2() {
 				Shutdown();
-				Sleep(2000);
+				Sleep(3000); //TODO actually check that script is closed
 				Variable shutdown = GetVariableFromVector("tl_shutdown", tlVariables);
 				shutdown.value = "false";
 				std::string fullText = "";
