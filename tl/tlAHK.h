@@ -143,8 +143,9 @@ namespace tl {
 
 		class SingleScriptRuntime2 {
 		private:
-			const std::string script;
-			const std::string title;
+			std::string scriptRelativePath;
+			std::string script;
+			std::string title;
 			const std::string areaComment = ";tlahkruntime1";
 			std::vector<BaseVariable> baseVariables;
 			std::vector<BaseVariable> tlVariables;
@@ -292,16 +293,7 @@ namespace tl {
 				}
 				return variables;
 			}
-			SingleScriptRuntime2(const std::string& scriptRelativePath)
-				: script(tl::bce::RelativeToDirectPath(scriptRelativePath))
-				, title(scriptRelativePath)
-			{
-				tl::bce::validateFile(areaComment, script);
-				ReInitializeBaseVariables();
-				StartUp();
-				UpdateAll();
-			}
-			~SingleScriptRuntime2() {
+			void CloseScript() {
 				Shutdown();
 				Sleep(3000); //TODO actually check that script is closed
 				Variable shutdown = GetVariableFromVector("tl_shutdown", tlVariables);
@@ -314,6 +306,42 @@ namespace tl {
 					fullText,
 					script
 				);
+			}
+			SingleScriptRuntime2(const std::string& scriptRelativePath)
+				: scriptRelativePath(scriptRelativePath)
+				, title(scriptRelativePath)
+				, script(tl::bce::RelativeToDirectPath(scriptRelativePath))
+			{
+				tl::bce::validateFile(areaComment, script);
+				ReInitializeBaseVariables();
+				StartUp();
+				UpdateAll();
+			}
+		};
+
+		class ScriptHandler {
+			std::vector<SingleScriptRuntime2> scripts;
+		public:
+			void OpenScript(const std::string& ahkScriptRelativePath) {
+				try
+				{
+					scripts.emplace_back(ahkScriptRelativePath);
+				}
+				catch (const std::exception& e)
+				{
+					scripts.pop_back();
+					std::cout << e.what() << std::endl;
+				}
+			}
+			void DrawAll() {
+				for (SingleScriptRuntime2& script : scripts) {
+					script.DrawWindow();
+				}
+			}
+			~ScriptHandler() {
+				for (SingleScriptRuntime2& script : scripts) {
+					script.CloseScript();
+				}
 			}
 		};
 	}
