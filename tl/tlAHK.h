@@ -141,7 +141,7 @@ namespace tl {
 			ShellExecuteA(NULL, NULL, ahkScriptPath.c_str(), NULL, NULL, 0);			
 		}
 
-		class SingleScriptRuntime2 {
+		class SingleScriptRuntime {
 		private:
 			std::string scriptRelativePath;
 			std::string script;
@@ -307,7 +307,7 @@ namespace tl {
 					script
 				);
 			}
-			SingleScriptRuntime2(const std::string& scriptRelativePath)
+			SingleScriptRuntime(const std::string& scriptRelativePath)
 				: scriptRelativePath(scriptRelativePath)
 				, title(scriptRelativePath)
 				, script(tl::bce::RelativeToDirectPath(scriptRelativePath))
@@ -320,7 +320,7 @@ namespace tl {
 		};
 
 		class ScriptHandler {
-			std::vector<SingleScriptRuntime2> scripts;
+			std::vector<SingleScriptRuntime> scripts;
 		public:
 			void OpenScript(const std::string& ahkScriptRelativePath) {
 				try
@@ -334,12 +334,12 @@ namespace tl {
 				}
 			}
 			void DrawAll() {
-				for (SingleScriptRuntime2& script : scripts) {
+				for (SingleScriptRuntime& script : scripts) {
 					script.DrawWindow();
 				}
 			}
 			~ScriptHandler() {
-				for (SingleScriptRuntime2& script : scripts) {
+				for (SingleScriptRuntime& script : scripts) {
 					script.CloseScript();
 				}
 			}
