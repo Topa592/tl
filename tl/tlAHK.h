@@ -150,7 +150,7 @@ namespace tl {
 			std::vector<BaseVariable> baseVariables;
 			std::vector<BaseVariable> tlVariables;
 			std::filesystem::file_time_type lastTimeThisUpdated = LastTimeModified();
-			std::chrono::steady_clock::time_point lastTimeRanScript = std::chrono::steady_clock::now();
+			std::chrono::steady_clock::time_point lastTimeRanScript = std::chrono::steady_clock::now() - std::chrono::seconds(3);
 			void ReOpenScript() {
 				auto time = std::chrono::steady_clock::now();
 				if (time - lastTimeRanScript < std::chrono::seconds(2)) std::this_thread::sleep_for(std::chrono::seconds(2));
