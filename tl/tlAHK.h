@@ -143,7 +143,6 @@ namespace tl {
 
 		class SingleScriptRuntime {
 		private:
-			std::string scriptRelativePath;
 			std::string script;
 			std::string title;
 			const std::string areaComment = ";tlahkruntime1";
@@ -160,11 +159,6 @@ namespace tl {
 			void StartUp() {
 				Variable shutdown = GetVariableFromVector("tl_shutdown", tlVariables);
 				shutdown.value = "false";
-			}
-			void Shutdown() {
-				Variable shutdown = GetVariableFromVector("tl_shutdown", tlVariables);
-				shutdown.value = "true";
-				UpdateAll();
 			}
 			void Turnon() {
 				Variable shutdown = GetVariableFromVector("tl_shutdown", tlVariables);
@@ -237,6 +231,11 @@ namespace tl {
 				return LastTimeModified() == lastTimeThisUpdated;
 			}
 		public:
+			void Shutdown() {
+				Variable shutdown = GetVariableFromVector("tl_shutdown", tlVariables);
+				shutdown.value = "true";
+				UpdateAll();
+			}
 			void DrawWindow() {
 				ImGui::Begin(title.c_str());
 				if (ImGui::Button("Reload")) UpdateAll();
@@ -293,9 +292,7 @@ namespace tl {
 				}
 				return variables;
 			}
-			void CloseScript() {
-				Shutdown();
-				Sleep(3000); //TODO actually check that script is closed
+			void FixStartStateOutsideProgram() {
 				Variable shutdown = GetVariableFromVector("tl_shutdown", tlVariables);
 				shutdown.value = "false";
 				std::string fullText = "";
@@ -307,10 +304,9 @@ namespace tl {
 					script
 				);
 			}
-			SingleScriptRuntime(const std::string& scriptRelativePath)
-				: scriptRelativePath(scriptRelativePath)
-				, title(scriptRelativePath)
-				, script(tl::bce::RelativeToDirectPath(scriptRelativePath))
+			SingleScriptRuntime(const std::string& title, const std::string& scriptDirectPath)
+				: title(title)
+				, script(scriptDirectPath)
 			{
 				tl::bce::validateFile(areaComment, script);
 				ReInitializeBaseVariables();
@@ -322,16 +318,31 @@ namespace tl {
 		class ScriptHandler {
 			std::vector<SingleScriptRuntime> scripts;
 		public:
-			void OpenScript(const std::string& ahkScriptRelativePath) {
+			void OpenScript(const std::string& title, const std::string& ahkScriptDirectPath) {
 				try
 				{
-					scripts.emplace_back(ahkScriptRelativePath);
+					scripts.emplace_back(title, ahkScriptDirectPath);
 				}
 				catch (const std::exception& e)
 				{
-					scripts.pop_back();
 					std::cout << e.what() << std::endl;
 				}
+			}
+			void OpenScriptRelativePath(const std::string& ahkScriptRelativePath) {
+				OpenScript(ahkScriptRelativePath, tl::bce::RelativeToDirectPath(ahkScriptRelativePath));
+			}
+			void OpenAllScriptsInFolder(const std::string& folderPath) {
+				namespace fs = std::filesystem;
+				for (auto& p : fs::directory_iterator(folderPath)) {
+					std::string s = p.path().generic_string();
+					if (s.ends_with(".ahk")) {
+						OpenScript(fs::relative(p.path(), folderPath).generic_string(), s);
+					}
+				}
+			}
+			void OpenAllScriptsInFolder() {
+				std::string thisPath = tl::bce::RelativeToDirectPath("");
+				OpenAllScriptsInFolder(thisPath);
 			}
 			void DrawAll() {
 				for (SingleScriptRuntime& script : scripts) {
@@ -340,7 +351,11 @@ namespace tl {
 			}
 			~ScriptHandler() {
 				for (SingleScriptRuntime& script : scripts) {
-					script.CloseScript();
+					script.Shutdown();
+				}
+				Sleep(3000);
+				for (SingleScriptRuntime& script : scripts) {
+					script.FixStartStateOutsideProgram();
 				}
 			}
 		};
