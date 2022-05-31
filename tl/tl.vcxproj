@@ -146,6 +146,7 @@
     <ClInclude Include="tlAHK.h" />
     <ClInclude Include="tlBasicGuiRuntime.h" />
     <ClInclude Include="tlBasicCodeEditor.h" />
+    <ClInclude Include="tlFFXIV.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
