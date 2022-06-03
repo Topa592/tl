@@ -15,15 +15,23 @@
 
 namespace tl {
 	namespace ahk {
+		enum class VariableType {
+			normal,
+			tl,
+			trueFalse,
+			lineChange,
+		};
 		struct BaseVariable {
 			std::string name = "";
 			std::string value = "";
+			VariableType type = VariableType::normal;
 		};
 		struct Variable {
 			const std::string& name;
 			std::string& value;
+			VariableType type;
 			Variable(BaseVariable& var)
-				: name(var.name), value(var.value) {}
+				: name(var.name), value(var.value), type(var.type) {}
 		};
 		Variable GetVariableFromVector(
 			const std::string& name,
@@ -210,7 +218,17 @@ namespace tl {
 							break;
 						}
 					}
+					if (var.name == "") {
+						var.type = VariableType::lineChange;
+					}
+					else if (var.value == "true" || var.value == "false") {
+						var.type = VariableType::trueFalse;
+					}
+					else {
+						var.type = VariableType::normal;
+					}
 					if (line.starts_with("tl_")) {
+						var.type = VariableType::tl;
 						tl.push_back(var);
 					} else base.push_back(var);
 				}
@@ -254,12 +272,30 @@ namespace tl {
 					ImGui::EndPopup();
 				}
 				for (BaseVariable& var : baseVariables) {
-					if (var.name == "") {
-						ImGui::Separator();
-						continue;
-					}
-					else {
+					switch (var.type)
+					{
+					case VariableType::normal:
 						ImGui::InputText(var.name.c_str(), &var.value);
+						break;
+					case VariableType::lineChange:
+						ImGui::Separator();
+						break;
+					case VariableType::trueFalse:
+						if (var.value == "true") {
+							if (ImGui::Button("True")) {
+								var.value = "false";
+							}
+						}
+						else {
+							if (ImGui::Button("False")) {
+								var.value = "true";
+							}
+						}
+						ImGui::SameLine();
+						ImGui::Text(var.name.c_str());
+						break;
+					default:
+						break;
 					}
 				}
 				ImGui::End();
