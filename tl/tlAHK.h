@@ -150,7 +150,7 @@ namespace tl {
 		}
 
 		class SingleScriptRuntime {
-		private:
+		protected:
 			std::string script;
 			std::string title;
 			const std::string areaComment = ";tlahkruntime1";
@@ -254,8 +254,7 @@ namespace tl {
 				shutdown.value = "true";
 				UpdateAll();
 			}
-			void DrawWindow() {
-				ImGui::Begin(title.c_str());
+			void DrawToolbar() {
 				if (ImGui::Button("Reload")) UpdateAll();
 				ImGui::SameLine();
 				if (ImGui::Button("Start")) Turnon();
@@ -271,6 +270,8 @@ namespace tl {
 					}
 					ImGui::EndPopup();
 				}
+			}
+			void DrawVariables() {
 				for (BaseVariable& var : baseVariables) {
 					switch (var.type)
 					{
@@ -298,6 +299,11 @@ namespace tl {
 						break;
 					}
 				}
+			}
+			virtual void DrawWindow() {
+				ImGui::Begin(title.c_str());
+				DrawToolbar();
+				DrawVariables();
 				ImGui::End();
 			}
 			
@@ -353,6 +359,8 @@ namespace tl {
 
 		class ScriptHandler {
 			std::vector<SingleScriptRuntime> scripts;
+			std::vector<SingleScriptRuntime*> outsideScripts;
+			
 		public:
 			void OpenScript(const std::string& title, const std::string& ahkScriptDirectPath) {
 				try
@@ -380,18 +388,30 @@ namespace tl {
 				std::string thisPath = tl::bce::RelativeToDirectPath("");
 				OpenAllScriptsInFolder(thisPath);
 			}
+			void AddScript(tl::ahk::SingleScriptRuntime& script) {
+				outsideScripts.push_back(&script);
+			}
 			void DrawAll() {
 				for (SingleScriptRuntime& script : scripts) {
 					script.DrawWindow();
+				}
+				for (SingleScriptRuntime* script : outsideScripts) {
+					script->DrawWindow();
 				}
 			}
 			~ScriptHandler() {
 				for (SingleScriptRuntime& script : scripts) {
 					script.Shutdown();
 				}
+				for (SingleScriptRuntime* script : outsideScripts) {
+					script->Shutdown();
+				}
 				Sleep(3000);
 				for (SingleScriptRuntime& script : scripts) {
 					script.FixStartStateOutsideProgram();
+				}
+				for (SingleScriptRuntime* script : outsideScripts) {
+					script->FixStartStateOutsideProgram();
 				}
 			}
 		};
