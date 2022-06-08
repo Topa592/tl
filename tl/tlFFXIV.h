@@ -6,9 +6,13 @@
 
 namespace tl {
 	namespace ffxiv {
+		//stands for teamcraft
+		namespace tc {
+
+		}
 		class CraftMacro {
 		private:
-			std::vector<int> sleepTimes;
+			std::vector<int> sleepTimes = {};
 			int SleepTimeFromLine(const std::string& line) {
 				std::string::size_type loc = line.find_last_of("<wait.");
 				std::string::size_type locEnd = line.find('>', loc);
@@ -58,6 +62,9 @@ namespace tl {
 			{
 
 			}
+			CraftMacro() {
+
+			}
 			void operator=(const CraftMacro& macro) {
 				sleepTimes = macro.sleepTimes;
 			}
@@ -68,18 +75,12 @@ namespace tl {
 
 		class CraftingScript : public tl::ahk::SingleScriptRuntime {
 			tl::ffxiv::CraftMacro macro;
-			std::string macroPath;
 		public:
 			CraftingScript(
 				const std::string& title,
-				const std::string& scriptDirectPath,
-				const std::string& macroDirectPath
+				const std::string& scriptDirectPath
 			) : tl::ahk::SingleScriptRuntime{ title, scriptDirectPath }
-				, macro(macroDirectPath)
-				, macroPath('"' + macroDirectPath + '"')
-			{
-
-			}
+			{}
 			std::vector<tl::ahk::Variable> Find3Variables(const std::string& varName) {
 				std::vector<tl::ahk::Variable> variables;
 				for (int i = 1; i <= 3; i++) {
@@ -98,19 +99,12 @@ namespace tl {
 				UpdateAll();
 			}
 
-			void UpdateMacroFromFile() {
-				std::string s = macroPath;
-				s.pop_back();
-				s = s.substr(1);
-				macro = CraftMacro(s);
-				UpdateMacro();
-			}
-
 			bool directWindowOpen = false;
 			std::string directMacroText = "";
 
 			void DirectMacro() {
 				ImGui::Begin("New Macro");
+				ImGui::Text("Copy paste your ffxiv macro here\nand if you have multiple macros\njust add empty line between them");
 				if (ImGui::Button("Save")) {
 					directWindowOpen = false;
 					macro = directMacroText;
@@ -129,20 +123,8 @@ namespace tl {
 			
 
 			void DrawWindow() override {
-				
 				ImGui::Begin(title.c_str());
 				DrawToolbar();
-				ImGui::InputText("", &macroPath);
-				if (ImGui::Button("UpdateMacroFromFile")) {
-					UpdateMacroFromFile();
-				}
-				ImGui::SameLine();
-				if (ImGui::Button("MacroPath")) ImGui::OpenPopup("macroPath_popup");
-				if (ImGui::BeginPopup("macroPath_popup")) {
-					ImGui::Text("%s", macroPath.c_str());
-					ImGui::EndPopup();
-				}
-				ImGui::SameLine();
 				if (ImGui::Button("New Macro")) directWindowOpen = true;
 				if (directWindowOpen) {
 					DirectMacro();

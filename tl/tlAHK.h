@@ -283,12 +283,14 @@ namespace tl {
 						break;
 					case VariableType::trueFalse:
 						if (var.value == "true") {
-							if (ImGui::Button("True")) {
+							std::string label = "True##" + var.name;
+							if (ImGui::Button(label.c_str())) {
 								var.value = "false";
 							}
 						}
 						else {
-							if (ImGui::Button("False")) {
+							std::string label = "False##" + var.name;
+							if (ImGui::Button(label.c_str())) {
 								var.value = "true";
 							}
 						}
