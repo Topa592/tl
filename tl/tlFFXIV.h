@@ -14,13 +14,19 @@ namespace tl {
 		private:
 			std::vector<int> sleepTimes = {};
 			int SleepTimeFromLine(const std::string& line) {
-				std::string::size_type loc = line.find_last_of("<wait.");
-				std::string::size_type locEnd = line.find('>', loc);
-				if (loc == std::string::npos || locEnd == std::string::npos) return 0;
-				loc++;
-				std::string::size_type length = locEnd - loc;
-				std::string number = line.substr(loc, length);
-				return std::stoi(number);
+				int total = 0;
+				std::string::size_type curStart = 0;
+				while (true) {
+					std::string::size_type loc = line.find("<wait.", curStart);
+					std::string::size_type locEnd = line.find('>', curStart);
+					if (loc == std::string::npos || locEnd == std::string::npos) break;
+					loc += std::string("<wait.").size();
+					std::string::size_type length = locEnd - loc;
+					std::string number = line.substr(loc, length);
+					total += std::stoi(number);
+					curStart = locEnd + 1;
+				}
+				return total;
 			}
 			void updateSleepTimesByString(const std::string& fullTextOfMacro) {
 				std::vector<std::string> linesOfText = tl::ahk::parser::parseStringIntoLines(fullTextOfMacro);
@@ -130,6 +136,22 @@ namespace tl {
 					DirectMacro();
 				}
 				
+				DrawVariables();
+				ImGui::End();
+			}
+		};
+
+		class GatheringScript : public tl::ahk::SingleScriptRuntime {
+		public:
+			GatheringScript(
+				const std::string& title,
+				const std::string& scriptDirectPath
+			) : tl::ahk::SingleScriptRuntime{ title, scriptDirectPath }
+			{}
+			void DrawWindow() override {
+				ImGui::Begin(title.c_str());
+				DrawToolbar();
+
 				DrawVariables();
 				ImGui::End();
 			}

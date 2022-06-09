@@ -44,49 +44,6 @@ namespace tl {
 			throw std::runtime_error("Not Existing Variable name");
 		}
 		namespace parser {
-			std::vector<BaseVariable> parseTextIntoVariables(
-				const std::vector<std::string>& linesOfText
-			) {
-				std::vector<BaseVariable> list;
-				for (const std::string& line : linesOfText) {
-					BaseVariable var;
-					int state = 0;
-					for (const char& c : line) {
-						switch (state)
-						{
-						case 0:
-							switch (c)
-							{
-							case ' ':
-							case ':':
-								break;
-							case '=':
-								state = 1;
-								break;
-							default:
-								var.name += c;
-								break;
-							}
-							break;
-						case 1:
-							switch (c)
-							{
-							case ' ':
-								break;
-							case '\n':
-								state = 2;
-								break;
-							default:
-								var.value += c;
-								break;
-							}
-							break;
-						}
-					}
-					list.push_back(var);
-				}
-				return list;
-			}
 			std::vector<std::string> parseStringIntoLines(
 				const std::string s
 			) {
@@ -119,11 +76,6 @@ namespace tl {
 					s += '\n';
 				}
 				return s;
-			}
-			std::vector<BaseVariable> parseStringIntoBaseVariables(
-				const std::string& s
-			) {
-				return parseTextIntoVariables(parseStringIntoLines(s));
 			}
 		}
 		namespace fileReaders {
@@ -185,6 +137,9 @@ namespace tl {
 				std::vector<BaseVariable> tl;
 				for (const std::string& line : linesOfText) {
 					BaseVariable var;
+					if (line.size() >= 1) {
+						
+					}
 					int state = 0;
 					for (const char& c : line) {
 						switch (state)
