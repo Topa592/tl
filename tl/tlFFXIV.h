@@ -126,16 +126,14 @@ namespace tl {
 				ImGui::End();
 			}
 
-			
-
 			void DrawWindow() override {
 				ImGui::Begin(title.c_str());
 				DrawToolbar();
+				ImGui::Separator();
 				if (ImGui::Button("New Macro")) directWindowOpen = true;
 				if (directWindowOpen) {
 					DirectMacro();
 				}
-				
 				DrawVariables();
 				ImGui::End();
 			}

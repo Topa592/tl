@@ -20,11 +20,30 @@ namespace tl {
 			tl,
 			trueFalse,
 			lineChange,
+			comment,
+			Dropbox,
 		};
 		struct BaseVariable {
 			std::string name = "";
 			std::string value = "";
 			VariableType type = VariableType::normal;
+			std::string toString() const {
+				switch (type)
+				{
+				case tl::ahk::VariableType::normal:
+				case tl::ahk::VariableType::tl:
+				case tl::ahk::VariableType::trueFalse:
+					return name + " := " + value;
+				case tl::ahk::VariableType::lineChange:
+					return "";
+				case tl::ahk::VariableType::comment:
+					return value;
+				case tl::ahk::VariableType::Dropbox:
+					return ";Dropbox " + name + " " + value;
+				default:
+					return "";
+				}
+			}
 		};
 		struct Variable {
 			const std::string& name;
@@ -72,8 +91,7 @@ namespace tl {
 			) {
 				std::string s = "";
 				for (const BaseVariable& var : baseVariables) {
-					if (var.name != "") s += var.name + " := " + var.value;
-					s += '\n';
+					s += var.toString() + '\n';
 				}
 				return s;
 			}
@@ -138,50 +156,64 @@ namespace tl {
 				for (const std::string& line : linesOfText) {
 					BaseVariable var;
 					if (line.size() >= 1) {
-						
-					}
-					int state = 0;
-					for (const char& c : line) {
-						switch (state)
-						{
-						case 0:
-							switch (c)
-							{
-							case ' ':
-							case ':':
-								break;
-							case '=':
-								state = 1;
-								break;
-							default:
-								var.name += c;
-								break;
+						if (line[0] == ';') {
+							var.type = VariableType::comment;
+							int state = 0;
+							if (line.starts_with(";Dropbox ")) {
+								var.type = VariableType::Dropbox;
+								std::string::size_type start = std::string(";Dropbox ").size();
+								std::string::size_type end = line.find(' ', start);
+								var.name = line.substr(start, end);
+								if (end != std::string::npos) var.value = line.substr(end + 1);
 							}
-							break;
-						case 1:
-							switch (c)
-							{
-							case ' ':
-								break;
-							case '\n':
-								state = 2;
-								break;
-							default:
-								var.value += c;
-								break;
+							else {
+								var.value = line;
 							}
-							break;
+						}
+						else {
+							var.type = VariableType::normal;
+							int state = 0;
+							for (const char& c : line) {
+								switch (state)
+								{
+								case 0:
+									switch (c)
+									{
+									case ' ':
+									case ':':
+										break;
+									case '=':
+										state = 1;
+										break;
+									default:
+										var.name += c;
+										break;
+									}
+									break;
+								case 1:
+									switch (c)
+									{
+									case ' ':
+										break;
+									case '\n':
+										state = 2;
+										break;
+									default:
+										var.value += c;
+										break;
+									}
+									break;
+								}
+							}
+							if (var.value == "true" || var.value == "false") {
+								var.type = VariableType::trueFalse;
+							}
 						}
 					}
-					if (var.name == "") {
+					else {
 						var.type = VariableType::lineChange;
 					}
-					else if (var.value == "true" || var.value == "false") {
-						var.type = VariableType::trueFalse;
-					}
-					else {
-						var.type = VariableType::normal;
-					}
+
 					if (line.starts_with("tl_")) {
 						var.type = VariableType::tl;
 						tl.push_back(var);
@@ -227,13 +259,24 @@ namespace tl {
 				}
 			}
 			void DrawVariables() {
+				bool InsideDropbox = false;
+				bool DropboxOn = false;
 				for (BaseVariable& var : baseVariables) {
+					if (var.type == VariableType::lineChange || var.type == VariableType::Dropbox) {
+						InsideDropbox = false;
+						DropboxOn = false;
+					}
+					if (DropboxOn == false && InsideDropbox == true) {
+						continue;
+					}
 					switch (var.type)
 					{
 					case VariableType::normal:
 						ImGui::InputText(var.name.c_str(), &var.value);
 						break;
 					case VariableType::lineChange:
+						InsideDropbox = false;
+						DropboxOn = false;
 						ImGui::Separator();
 						break;
 					case VariableType::trueFalse:
@@ -251,6 +294,10 @@ namespace tl {
 						}
 						ImGui::SameLine();
 						ImGui::Text(var.name.c_str());
+						break;
+					case VariableType::Dropbox:
+						if (ImGui::CollapsingHeader(var.name.c_str())) DropboxOn = true;
+						InsideDropbox = true;
 						break;
 					default:
 						break;
