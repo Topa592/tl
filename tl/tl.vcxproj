@@ -148,6 +148,7 @@
     <ClInclude Include="tlBasicCodeEditor.h" />
     <ClInclude Include="tlFFXIV.h" />
     <ClInclude Include="tlFilesystem.h" />
+    <ClInclude Include="tlInputRecorder.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
