@@ -15,6 +15,7 @@
 
 namespace tl {
 	namespace ahk {
+		std::vector<std::string> parseStringIntoLines(const std::string);
 		enum class VariableType {
 			normal,
 			tl,
@@ -22,11 +23,36 @@ namespace tl {
 			lineChange,
 			comment,
 			Dropbox,
+			Function,
 		};
 		struct BaseVariable {
 			std::string name = "";
 			std::string value = "";
 			VariableType type = VariableType::normal;
+			void DrawBasic() {
+				switch (type)
+				{
+				case VariableType::normal:
+					ImGui::InputText(name.c_str(), &value);
+					break;
+				case VariableType::trueFalse:
+					if (value == "true") {
+						std::string label = "True##" + name;
+						if (ImGui::Button(label.c_str())) {
+							value = "false";
+						}
+					}
+					else {
+						std::string label = "False##" + name;
+						if (ImGui::Button(label.c_str())) {
+							value = "true";
+						}
+					}
+					ImGui::SameLine();
+					ImGui::Text(name.c_str());
+					break;
+				}
+			}
 			std::string toString() const {
 				switch (type)
 				{
@@ -39,10 +65,76 @@ namespace tl {
 				case tl::ahk::VariableType::comment:
 					return value;
 				case tl::ahk::VariableType::Dropbox:
-					return ";Dropbox " + name + " " + value;
+					return ";Dropbox " + name;
 				default:
 					return "";
 				}
+			}
+			void fromString(const std::string& s) {
+				if (s.size() >= 1) {
+					if (s[0] == ';') {
+						type = VariableType::comment;
+						int state = 0;
+						if (s.starts_with(";Dropbox ")) {
+							type = VariableType::Dropbox;
+							std::string::size_type start = std::string(";Dropbox ").size();
+							name = s.substr(start);
+						}
+						else {
+							value = s;
+						}
+					}
+					else {
+						type = VariableType::normal;
+						int state = 0;
+						for (const char& c : s) {
+							switch (state)
+							{
+							case 0:
+								switch (c)
+								{
+								case ' ':
+								case ':':
+									break;
+								case '=':
+									state = 1;
+									break;
+								default:
+									name += c;
+									break;
+								}
+								break;
+							case 1:
+								switch (c)
+								{
+								case ' ':
+									break;
+								case '\n':
+									state = 2;
+									break;
+								default:
+									value += c;
+									break;
+								}
+								break;
+							}
+						}
+						if (value == "true" || value == "false") {
+							type = VariableType::trueFalse;
+						}
+					}
+				}
+				else {
+					type = VariableType::lineChange;
+				}
+			}
+		};
+		struct BaseFunction {
+			std::string toString() const {
+
+			}
+			void fromString(const std::string& s) {
+
 			}
 		};
 		struct Variable {
@@ -155,66 +247,9 @@ namespace tl {
 				std::vector<BaseVariable> tl;
 				for (const std::string& line : linesOfText) {
 					BaseVariable var;
-					if (line.size() >= 1) {
-						if (line[0] == ';') {
-							var.type = VariableType::comment;
-							int state = 0;
-							if (line.starts_with(";Dropbox ")) {
-								var.type = VariableType::Dropbox;
-								std::string::size_type start = std::string(";Dropbox ").size();
-								std::string::size_type end = line.find(' ', start);
-								var.name = line.substr(start, end);
-								if (end != std::string::npos) var.value = line.substr(end + 1);
-							}
-							else {
-								var.value = line;
-							}
-						}
-						else {
-							var.type = VariableType::normal;
-							int state = 0;
-							for (const char& c : line) {
-								switch (state)
-								{
-								case 0:
-									switch (c)
-									{
-									case ' ':
-									case ':':
-										break;
-									case '=':
-										state = 1;
-										break;
-									default:
-										var.name += c;
-										break;
-									}
-									break;
-								case 1:
-									switch (c)
-									{
-									case ' ':
-										break;
-									case '\n':
-										state = 2;
-										break;
-									default:
-										var.value += c;
-										break;
-									}
-									break;
-								}
-							}
-							if (var.value == "true" || var.value == "false") {
-								var.type = VariableType::trueFalse;
-							}
-						}
-					}
-					else {
-						var.type = VariableType::lineChange;
-					}
+					var.fromString(line);
 
-					if (line.starts_with("tl_")) {
+					if (var.name.starts_with("tl_")) {
 						var.type = VariableType::tl;
 						tl.push_back(var);
 					} else base.push_back(var);
@@ -272,28 +307,13 @@ namespace tl {
 					switch (var.type)
 					{
 					case VariableType::normal:
-						ImGui::InputText(var.name.c_str(), &var.value);
+					case VariableType::trueFalse:
+						var.DrawBasic();
 						break;
 					case VariableType::lineChange:
 						InsideDropbox = false;
 						DropboxOn = false;
 						ImGui::Separator();
-						break;
-					case VariableType::trueFalse:
-						if (var.value == "true") {
-							std::string label = "True##" + var.name;
-							if (ImGui::Button(label.c_str())) {
-								var.value = "false";
-							}
-						}
-						else {
-							std::string label = "False##" + var.name;
-							if (ImGui::Button(label.c_str())) {
-								var.value = "true";
-							}
-						}
-						ImGui::SameLine();
-						ImGui::Text(var.name.c_str());
 						break;
 					case VariableType::Dropbox:
 						if (ImGui::CollapsingHeader(var.name.c_str())) DropboxOn = true;

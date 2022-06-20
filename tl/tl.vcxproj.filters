@@ -33,5 +33,11 @@
     <ClInclude Include="tlInputRecorder.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="tlInput.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="tlUtilities.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

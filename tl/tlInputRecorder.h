@@ -6,34 +6,36 @@
 
 namespace tl {
 	namespace ir {
+		struct KeyInput {
+			DWORD vkCode = 0;
+			DWORD scanCode = 0;
+			DWORD flags = 0;
+			DWORD time = 0;
+			KeyInput(KBDLLHOOKSTRUCT* data) {
+				vkCode = data->vkCode;
+				scanCode = data->scanCode;
+				flags = data->flags;
+				time = data->time;
+			}
+			KeyInput() {};
+		};
 		namespace impl {
-			HHOOK KeyHookWnd;
-			struct KeyInput {
-				LRESULT lResult;
-				LPARAM lParam;
-				WPARAM wParam;
-				UINT message;
-				HWND hwnd;
-			};
+			static HHOOK KeyHookWnd;
 			
-			class InputPlayer {
-				std::queue<KeyInput> keys;
-			public:
-				void push(CWPRETSTRUCT data) {
-					std::cout << data.wParam << std::endl;
+			
+			std::queue<KeyInput> keys;
+			void ifNotSamePush(KBDLLHOOKSTRUCT* data) {
+				if (keys.size() == 0) {
+					keys.push(data);
+					return;
 				}
-				void playback() {
-					while (!keys.empty()) {
-						auto key = keys.front();
-
-
-						keys.pop();
-					}
-				}
-			};
-			InputPlayer inputs;
+				const KeyInput& last = keys.back();
+				if (last.vkCode == data->vkCode && last.flags == data->vkCode) return;
+				keys.push(data);
+			}
 			LRESULT Hookproc(int code, WPARAM wParam, LPARAM lParam) {
-				inputs.push((CWPRETSTRUCT)lParam);
+				if (code < 0) return CallNextHookEx(NULL, code, wParam, lParam);
+				ifNotSamePush((KBDLLHOOKSTRUCT*)lParam);
 				return CallNextHookEx(NULL, code, wParam, lParam);
 			}
 			void AtExit() {
@@ -48,11 +50,14 @@ namespace tl {
 			}
 		}
 		namespace InputRecorder {
+			
+			void StopRecording();
 			void StartRecording() {
+				StopRecording();
 				impl::Init();
-				HWND windowHandle = FindWindow(NULL, _T("FINAL FANTASY XIV"));
-				DWORD threadId = GetWindowThreadProcessId(windowHandle, NULL);
-				impl::KeyHookWnd = SetWindowsHookExA(WH_KEYBOARD, impl::Hookproc, NULL, threadId);
+				//HWND windowHandle = FindWindow(NULL, _T("FINAL FANTASY XIV"));
+				//DWORD threadId = GetWindowThreadProcessId(windowHandle, NULL);
+				impl::KeyHookWnd = SetWindowsHookExA(WH_KEYBOARD_LL, impl::Hookproc, GetModuleHandleA(NULL), NULL);
 				if (!impl::KeyHookWnd) {
 					DWORD errCode = GetLastError();
 					std::string errCmd = "Failed to Hook";
@@ -64,9 +69,15 @@ namespace tl {
 			void StopRecording() {
 				if (impl::KeyHookWnd) UnhookWindowsHookEx(impl::KeyHookWnd);
 			}
-			void PlayBackRecorded() {
+			std::vector<KeyInput> GetRecording() {
 				StopRecording();
-				impl::inputs.playback();
+				std::vector<KeyInput> inputs;
+				auto& keys = impl::keys;
+				while (!keys.empty()) {
+					inputs.push_back(keys.front());
+					keys.pop();
+				}
+				return inputs;
 			}
 		}
 	}

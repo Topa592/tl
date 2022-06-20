@@ -3,6 +3,7 @@
 #include <vector>
 #include <fstream>
 #include "tlAHK.h"
+#include "tlInputRecorder.h"
 
 namespace tl {
 	namespace ffxiv {
@@ -81,6 +82,7 @@ namespace tl {
 
 		class CraftingScript : public tl::ahk::SingleScriptRuntime {
 			tl::ffxiv::CraftMacro macro;
+			std::vector<tl::ir::KeyInput> inputs;
 		public:
 			CraftingScript(
 				const std::string& title,
@@ -107,9 +109,14 @@ namespace tl {
 
 			bool directWindowOpen = false;
 			std::string directMacroText = "";
+			std::string playbackCount = "1";
 
 			void DirectMacro() {
-				ImGui::Begin("New Macro");
+				if (!ImGui::Begin("New Macro", &directWindowOpen)) {
+					directMacroText = "";
+					ImGui::End();
+					return;
+				}
 				ImGui::Text("Copy paste your ffxiv macro here\nand if you have multiple macros\njust add empty line between them");
 				if (ImGui::Button("Save")) {
 					directWindowOpen = false;
@@ -125,6 +132,25 @@ namespace tl {
 				ImGui::InputTextMultiline("", &directMacroText);
 				ImGui::End();
 			}
+			void PlaySingleKey(const tl::ir::KeyInput& key) {
+				DWORD up = NULL;
+				if (key.flags & LLKHF_UP) up = KEYEVENTF_KEYUP;
+				keybd_event((BYTE)key.vkCode, (BYTE)key.scanCode, up, NULL);
+			}
+			void PlayBack(int count) {
+				Sleep(3000);
+				for (; count > 0; count--) {
+					tl::ir::KeyInput previous = inputs.front();
+					PlaySingleKey(previous);
+					
+					for (int i = 1; i < inputs.size(); i++) {
+						const auto& key = inputs[i];
+						Sleep(key.time - previous.time);
+						PlaySingleKey(key);
+						previous = key;
+					}
+				}
+			}
 
 			void DrawWindow() override {
 				ImGui::Begin(title.c_str());
@@ -134,6 +160,18 @@ namespace tl {
 				if (directWindowOpen) {
 					DirectMacro();
 				}
+				if (ImGui::Button("startRecording")) {
+					tl::ir::InputRecorder::StartRecording();
+				}
+				if (ImGui::Button("stopRecording")) {
+					tl::ir::InputRecorder::StopRecording();
+					inputs = tl::ir::InputRecorder::GetRecording();
+				}
+				ImGui::InputText("PlaybackCount", &playbackCount);
+				if (ImGui::Button("Playback in loop")) {
+					PlayBack(std::stoi(playbackCount));
+				}
+				ImGui::Separator();
 				DrawVariables();
 				ImGui::End();
 			}
@@ -154,5 +192,6 @@ namespace tl {
 				ImGui::End();
 			}
 		};
+		
 	}
 }
