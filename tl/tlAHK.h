@@ -26,13 +26,12 @@ namespace tl {
 			lineChange,
 			comment,
 			Dropbox,
-			Function,
 		};
 		struct BaseVariable {
 			std::string name = "";
 			std::string value = "";
 			VariableType type = VariableType::normal;
-			virtual void DrawBasic() {
+			void DrawBasic() {
 				switch (type)
 				{
 				case VariableType::normal:
@@ -56,7 +55,7 @@ namespace tl {
 					break;
 				}
 			}
-			virtual std::string toString() const {
+			std::string toString() const {
 				switch (type)
 				{
 				case tl::ahk::VariableType::normal:
@@ -73,7 +72,7 @@ namespace tl {
 					return "";
 				}
 			}
-			virtual void fromString(const std::string& s) {
+			void fromString(const std::string& s) {
 				if (s.size() >= 1) {
 					if (s[0] == ';') {
 						type = VariableType::comment;
@@ -132,9 +131,10 @@ namespace tl {
 				}
 			}
 		};
-		struct BaseFunction : public BaseVariable {
+		struct BaseFunction {
+			std::string name = "";
 			std::vector<std::string> linesOfValue = {};
-			std::string toString() const override {
+			std::string toString() const {
 				std::string s = ";fn\n"
 					+ name + "() {\n";
 				for (const std::string& line : linesOfValue) {
@@ -143,11 +143,11 @@ namespace tl {
 				s += "}";
 				return s;
 			}
-			void fromString(const std::string& s) override {
+			void fromString(const std::string& s) {
 				std::vector<std::string> lines = parser::parseStringIntoLines(s);
 				int i = 0;
 				if (lines.front().starts_with(";fn")) i = 1;
-				int end = lines[i].find('(');
+				size_t end = lines[i].find('(');
 				name = lines[i].substr(0, end);
 				i++;
 				//-1 size ignoring last line of '}' 
@@ -157,7 +157,7 @@ namespace tl {
 				}
 			}
 			bool windowOpen = false;
-			void DrawBasic() override {
+			void DrawBasic() {
 				if (ImGui::Button(name.c_str())) {
 					windowOpen = true;
 				}
@@ -168,9 +168,6 @@ namespace tl {
 					ImGui::Text(toString().c_str());
 					ImGui::End();
 				}
-			}
-			BaseFunction() {
-				this->type = tl::ahk::VariableType::Function;
 			}
 		};
 		struct Variable {
@@ -214,11 +211,12 @@ namespace tl {
 				}
 				return s;
 			}
-			std::string parseBaseVariablesIntoString(
-				const std::vector<BaseVariable>& baseVariables
+			template<typename T>
+			std::string parseVariablesIntoString(
+				const std::vector<T>& variables
 			) {
 				std::string s = "";
-				for (const BaseVariable& var : baseVariables) { //TODO not working with BaseFunction
+				for (const T& var : variables) {
 					s += var.toString() + '\n';
 				}
 				return s;
@@ -254,6 +252,7 @@ namespace tl {
 			const std::string areaComment = ";tlahkruntime1";
 			std::vector<BaseVariable> baseVariables;
 			std::vector<BaseVariable> tlVariables;
+			std::vector<BaseFunction> functions;
 			std::filesystem::file_time_type lastTimeThisUpdated = LastTimeModified();
 			std::chrono::steady_clock::time_point lastTimeRanScript = std::chrono::steady_clock::now() - std::chrono::seconds(3);
 			void ReOpenScript() {
@@ -294,7 +293,7 @@ namespace tl {
 						tempFunc += line + "\n";
 						BaseFunction func;
 						func.fromString(tempFunc);
-						base.push_back(func);
+						functions.push_back(func);
 						continue;
 					}
 					BaseVariable var;
@@ -382,15 +381,18 @@ namespace tl {
 				DrawVariables();
 				ImGui::End();
 			}
-			
-			void UpdateAll() {
+			std::string GetFullText() {
 				std::string fullText = "";
+				fullText += tl::ahk::parser::parseVariablesIntoString(tlVariables);
+				fullText += tl::ahk::parser::parseVariablesIntoString(baseVariables);
+				fullText += tl::ahk::parser::parseVariablesIntoString(functions);
+				return fullText;
+			}
+			void UpdateAll() {
 				if (IfFileLastTimeUpdatedByThis()) {
-					fullText += tl::ahk::parser::parseBaseVariablesIntoString(tlVariables);
-					fullText += tl::ahk::parser::parseBaseVariablesIntoString(baseVariables);
 					tl::bce::ReplaceWithText(
 						areaComment,
-						fullText,
+						GetFullText(),
 						script
 					);
 				}
@@ -413,12 +415,9 @@ namespace tl {
 			void FixStartStateOutsideProgram() {
 				Variable shutdown = GetVariableFromVector("tl_shutdown", tlVariables);
 				shutdown.value = "false";
-				std::string fullText = "";
-				fullText += tl::ahk::parser::parseBaseVariablesIntoString(tlVariables);
-				fullText += tl::ahk::parser::parseBaseVariablesIntoString(baseVariables);
 				tl::bce::ReplaceWithText(
 					areaComment,
-					fullText,
+					GetFullText(),
 					script
 				);
 			}
