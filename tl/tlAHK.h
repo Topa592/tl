@@ -15,7 +15,10 @@
 
 namespace tl {
 	namespace ahk {
-		std::vector<std::string> parseStringIntoLines(const std::string);
+		namespace parser {
+			std::vector<std::string> parseStringIntoLines(const std::string);
+		}
+		
 		enum class VariableType {
 			normal,
 			tl,
@@ -29,7 +32,7 @@ namespace tl {
 			std::string name = "";
 			std::string value = "";
 			VariableType type = VariableType::normal;
-			void DrawBasic() {
+			virtual void DrawBasic() {
 				switch (type)
 				{
 				case VariableType::normal:
@@ -53,7 +56,7 @@ namespace tl {
 					break;
 				}
 			}
-			std::string toString() const {
+			virtual std::string toString() const {
 				switch (type)
 				{
 				case tl::ahk::VariableType::normal:
@@ -70,7 +73,7 @@ namespace tl {
 					return "";
 				}
 			}
-			void fromString(const std::string& s) {
+			virtual void fromString(const std::string& s) {
 				if (s.size() >= 1) {
 					if (s[0] == ';') {
 						type = VariableType::comment;
@@ -129,12 +132,45 @@ namespace tl {
 				}
 			}
 		};
-		struct BaseFunction {
-			std::string toString() const {
-
+		struct BaseFunction : public BaseVariable {
+			std::vector<std::string> linesOfValue = {};
+			std::string toString() const override {
+				std::string s = ";fn\n"
+					+ name + "() {\n";
+				for (const std::string& line : linesOfValue) {
+					s += line + "\n";
+				}
+				s += "}";
+				return s;
 			}
-			void fromString(const std::string& s) {
-
+			void fromString(const std::string& s) override {
+				std::vector<std::string> lines = parser::parseStringIntoLines(s);
+				int i = 0;
+				if (lines.front().starts_with(";fn")) i = 1;
+				int end = lines[i].find('(');
+				name = lines[i].substr(0, end);
+				i++;
+				//-1 size ignoring last line of '}' 
+				for (; i < lines.size(); i++) {
+					if (lines[i].starts_with("}")) break;
+					linesOfValue.push_back(lines[i]);
+				}
+			}
+			bool windowOpen = false;
+			void DrawBasic() override {
+				if (ImGui::Button(name.c_str())) {
+					windowOpen = true;
+				}
+				if (windowOpen) {
+					std::string s = name.c_str();
+					s += "##window";
+					ImGui::Begin(s.c_str(), &windowOpen);
+					ImGui::Text(toString().c_str());
+					ImGui::End();
+				}
+			}
+			BaseFunction() {
+				this->type = tl::ahk::VariableType::Function;
 			}
 		};
 		struct Variable {
@@ -182,7 +218,7 @@ namespace tl {
 				const std::vector<BaseVariable>& baseVariables
 			) {
 				std::string s = "";
-				for (const BaseVariable& var : baseVariables) {
+				for (const BaseVariable& var : baseVariables) { //TODO not working with BaseFunction
 					s += var.toString() + '\n';
 				}
 				return s;
@@ -245,14 +281,30 @@ namespace tl {
 			) {
 				std::vector<BaseVariable> base;
 				std::vector<BaseVariable> tl;
-				for (const std::string& line : linesOfText) {
+				
+				for (int i = 0; i < linesOfText.size(); i++) {
+					std::string line = linesOfText[i];
+					if (line.starts_with(";fn")) {
+						std::string tempFunc = "";
+						while (!line.starts_with("}")) {
+							tempFunc += line + "\n";
+							i++;
+							line = linesOfText[i];
+						}
+						tempFunc += line + "\n";
+						BaseFunction func;
+						func.fromString(tempFunc);
+						base.push_back(func);
+						continue;
+					}
 					BaseVariable var;
 					var.fromString(line);
 
 					if (var.name.starts_with("tl_")) {
 						var.type = VariableType::tl;
 						tl.push_back(var);
-					} else base.push_back(var);
+					}
+					else base.push_back(var);
 				}
 				baseVariables = base;
 				tlVariables = tl;
