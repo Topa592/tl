@@ -4,6 +4,10 @@
 
 namespace tl {
 	namespace filesystem {
+		std::string GetFolderPath(const std::string& directFilePath) {
+			size_t start = directFilePath.rfind('\\');
+			return directFilePath.substr(0, start+1);
+		}
 		class RelativePather {
 			std::string path;
 		public:

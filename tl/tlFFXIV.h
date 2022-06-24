@@ -4,6 +4,8 @@
 #include <fstream>
 #include "tlAHK.h"
 #include "tlInputRecorder.h"
+#include "tlFilesystem.h"
+#include <format>
 
 namespace tl {
 	namespace ffxiv {
@@ -80,14 +82,91 @@ namespace tl {
 			}
 		};
 
+		class AutoCraftScript : public tl::ahk::SingleScriptRuntime {
+		public:
+			std::vector<tl::ir::KeyInput> inputs;
+			void DrawWindow() override {
+				ImGui::Begin(title.c_str());
+				DrawToolbar();
+				DrawVariables();
+				ImGui::End();
+			}
+			//void PlaySingleKey(const tl::ir::KeyInput& key) {
+			//	DWORD up = NULL;
+			//	if (key.flags & LLKHF_UP) up = KEYEVENTF_KEYUP;
+			//	keybd_event((BYTE)key.vkCode, (BYTE)key.scanCode, up, NULL);
+			//}
+			//void PlayBack(int count) {
+			//	Sleep(3000);
+			//	for (; count > 0; count--) {
+			//		tl::ir::KeyInput previous = inputs.front();
+			//		PlaySingleKey(previous);
+			//
+			//		for (int i = 1; i < inputs.size(); i++) {
+			//			const auto& key = inputs[i];
+			//			Sleep(key.time - previous.time);
+			//			PlaySingleKey(key);
+			//			previous = key;
+			//		}
+			//	}
+			//}
+			bool ifUp(const tl::ir::KeyInput& key) {
+				return (key.flags & LLKHF_UP);
+			}
+			std::string GetSend(const tl::ir::KeyInput& key) {
+				std::string lineSend = tl::ahk::windows::vkcodeToAHKSend(key);
+				//std::string lineSend = "  Send {vk";
+				//lineSend += std::format("{:x}sc{:x}", key.vkCode, key.scanCode);
+				//if (ifUp(key)) {
+				//	lineSend += " Up";
+				//}
+				//lineSend += "}";
+				return lineSend;
+			}
+			std::string GetSleep(const tl::ir::KeyInput& previous, const tl::ir::KeyInput& cur) {
+				std::string lineSleep = "  Sleep ";
+				int sleepTime = cur.time - previous.time;
+				if (sleepTime < 50) sleepTime = 50;
+				if (sleepTime > 2500) sleepTime = 2500;
+				lineSleep += std::to_string(sleepTime);
+				return lineSleep;
+			}
+			void UpdateFunction() {
+				auto& lines = GetLinesOfFunction("Craft()");
+				lines.clear();
+				if (inputs.empty()) return;
+				tl::ir::KeyInput previous = inputs.front();
+				lines.push_back(GetSend(previous));
+				for (int i = 1; i < inputs.size(); i++) {
+					tl::ir::KeyInput& cur = inputs[i];
+					lines.push_back(GetSleep(previous, cur));
+					lines.push_back(GetSend(cur));
+					previous = cur;
+				}
+			}
+			void StartScript(std::string count) {
+				tl::ahk::Variable craftCount = GetVariable("craftCount");
+				craftCount.value = count;
+				UpdateFunction();
+				UpdateAll();
+			}
+			AutoCraftScript(
+				const std::string& title,
+				const std::string& scriptDirectPath
+			) : tl::ahk::SingleScriptRuntime{ title, scriptDirectPath }
+			{}
+		};
+
 		class CraftingScript : public tl::ahk::SingleScriptRuntime {
 			tl::ffxiv::CraftMacro macro;
-			std::vector<tl::ir::KeyInput> inputs;
+			
+			AutoCraftScript craft;
 		public:
 			CraftingScript(
 				const std::string& title,
 				const std::string& scriptDirectPath
 			) : tl::ahk::SingleScriptRuntime{ title, scriptDirectPath }
+				, craft("Autocraft.ahk", tl::filesystem::GetFolderPath(scriptDirectPath) + "Autocraft.ahk")
 			{}
 			std::vector<tl::ahk::Variable> Find3Variables(const std::string& varName) {
 				std::vector<tl::ahk::Variable> variables;
@@ -132,25 +211,7 @@ namespace tl {
 				ImGui::InputTextMultiline("", &directMacroText);
 				ImGui::End();
 			}
-			void PlaySingleKey(const tl::ir::KeyInput& key) {
-				DWORD up = NULL;
-				if (key.flags & LLKHF_UP) up = KEYEVENTF_KEYUP;
-				keybd_event((BYTE)key.vkCode, (BYTE)key.scanCode, up, NULL);
-			}
-			void PlayBack(int count) {
-				Sleep(3000);
-				for (; count > 0; count--) {
-					tl::ir::KeyInput previous = inputs.front();
-					PlaySingleKey(previous);
-					
-					for (int i = 1; i < inputs.size(); i++) {
-						const auto& key = inputs[i];
-						Sleep(key.time - previous.time);
-						PlaySingleKey(key);
-						previous = key;
-					}
-				}
-			}
+
 
 			void DrawWindow() override {
 				ImGui::Begin(title.c_str());
@@ -165,11 +226,11 @@ namespace tl {
 				}
 				if (ImGui::Button("stopRecording")) {
 					tl::ir::InputRecorder::StopRecording();
-					inputs = tl::ir::InputRecorder::GetRecording();
+					craft.inputs = tl::ir::InputRecorder::GetRecording();
 				}
 				ImGui::InputText("PlaybackCount", &playbackCount);
-				if (ImGui::Button("Playback in loop")) {
-					PlayBack(std::stoi(playbackCount));
+				if (ImGui::Button("StartCraftScript")) {
+					craft.StartScript(playbackCount);
 				}
 				ImGui::Separator();
 				DrawVariables();

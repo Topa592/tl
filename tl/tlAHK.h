@@ -8,6 +8,7 @@
 #include <thread>
 #include "imgui.h"
 #include "imgui_stdlib.h"
+#include "tlInputRecorder.h"
 
 /*
 * on autohotkey #SingleIstance Force
@@ -18,7 +19,129 @@ namespace tl {
 		namespace parser {
 			std::vector<std::string> parseStringIntoLines(const std::string);
 		}
-		
+		namespace windows {
+			bool ifUp(const tl::ir::KeyInput& key) {
+				return (key.flags & LLKHF_UP);
+			}
+			std::string vkcodeToAHKSend(const tl::ir::KeyInput& key) {
+				std::string sendLine = "Send {";
+				switch (key.vkCode)
+				{
+				case VK_BACK:		sendLine += "Backspace"; break;
+				case VK_TAB:		sendLine += "Tab"; break;
+				case VK_SHIFT:		sendLine += "Shift"; break;
+				case VK_CONTROL:	sendLine += "Ctrl"; break;
+				case VK_MENU:		sendLine += "AppsKey"; break;
+				case VK_PAUSE:		sendLine += "Pause"; break;
+				case VK_CAPITAL:	sendLine += "CapsLock"; break;
+				case VK_ESCAPE:		sendLine += "Esc"; break;
+				case VK_SPACE:		sendLine += "Space"; break;
+				case VK_PRIOR:		sendLine += "PgUp"; break;
+				case VK_NEXT:		sendLine += "PgDn"; break;
+				case VK_END:		sendLine += "End"; break;
+				case VK_HOME:		sendLine += "Home"; break;
+				case VK_LEFT:		sendLine += "Left"; break;
+				case VK_UP:			sendLine += "Up"; break;
+				case VK_RIGHT:		sendLine += "Right"; break;
+				case VK_DOWN:		sendLine += "Down"; break;
+				case VK_PRINT:		sendLine += "PrintScreen"; break;
+				case VK_INSERT:		sendLine += "Insert"; break;
+				case VK_DELETE:		sendLine += "Delete"; break;
+				case '0':			sendLine += "0"; break;
+				case '1':			sendLine += "1"; break;
+				case '2':			sendLine += "2"; break;
+				case '3':			sendLine += "3"; break;
+				case '4':			sendLine += "4"; break;
+				case '5':			sendLine += "5"; break;
+				case '6':			sendLine += "6"; break;
+				case '7':			sendLine += "7"; break;
+				case '8':			sendLine += "8"; break;
+				case '9':			sendLine += "9"; break;
+				case 'A':			sendLine += "a"; break;
+				case 'B':			sendLine += "b"; break;
+				case 'C':			sendLine += "c"; break;
+				case 'D':			sendLine += "d"; break;
+				case 'E':			sendLine += "e"; break;
+				case 'F':			sendLine += "f"; break;
+				case 'G':			sendLine += "g"; break;
+				case 'H':			sendLine += "h"; break;
+				case 'I':			sendLine += "i"; break;
+				case 'J':			sendLine += "j"; break;
+				case 'K':			sendLine += "k"; break;
+				case 'L':			sendLine += "l"; break;
+				case 'M':			sendLine += "m"; break;
+				case 'N':			sendLine += "n"; break;
+				case 'O':			sendLine += "o"; break;
+				case 'P':			sendLine += "p"; break;
+				case 'Q':			sendLine += "q"; break;
+				case 'R':			sendLine += "r"; break;
+				case 'S':			sendLine += "s"; break;
+				case 'T':			sendLine += "t"; break;
+				case 'U':			sendLine += "u"; break;
+				case 'V':			sendLine += "v"; break;
+				case 'W':			sendLine += "w"; break;
+				case 'X':			sendLine += "x"; break;
+				case 'Y':			sendLine += "y"; break;
+				case 'Z':			sendLine += "z"; break;
+				case VK_LWIN:		sendLine += "LWin"; break;
+				case VK_RWIN:		sendLine += "RWin"; break;
+				case VK_NUMPAD0:	sendLine += "Numpad0"; break;
+				case VK_NUMPAD1:	sendLine += "Numpad1"; break;
+				case VK_NUMPAD2:	sendLine += "Numpad2"; break;
+				case VK_NUMPAD3:	sendLine += "Numpad3"; break;
+				case VK_NUMPAD4:	sendLine += "Numpad4"; break;
+				case VK_NUMPAD5:	sendLine += "Numpad5"; break;
+				case VK_NUMPAD6:	sendLine += "Numpad6"; break;
+				case VK_NUMPAD7:	sendLine += "Numpad7"; break;
+				case VK_NUMPAD8:	sendLine += "Numpad8"; break;
+				case VK_NUMPAD9:	sendLine += "Numpad9"; break;
+				case VK_MULTIPLY:	sendLine += "NumpadMult"; break;
+				case VK_ADD:		sendLine += "NumpadAdd"; break;
+				case VK_SUBTRACT:	sendLine += "NumpadSub"; break;
+				case VK_DECIMAL:	sendLine += "NumpadDot"; break;
+				case VK_DIVIDE:		sendLine += "NumpadDiv"; break;
+				case VK_F1:			sendLine += "F1"; break;
+				case VK_F2:			sendLine += "F2"; break;
+				case VK_F3:			sendLine += "F3"; break;
+				case VK_F4:			sendLine += "F4"; break;
+				case VK_F5:			sendLine += "F5"; break;
+				case VK_F6:			sendLine += "F6"; break;
+				case VK_F7:			sendLine += "F7"; break;
+				case VK_F8:			sendLine += "F8"; break;
+				case VK_F9:			sendLine += "F9"; break;
+				case VK_F10:		sendLine += "F10"; break;
+				case VK_F11:		sendLine += "F11"; break;
+				case VK_F12:		sendLine += "F12"; break;
+				case VK_F13:		sendLine += "F13"; break;
+				case VK_F14:		sendLine += "F14"; break;
+				case VK_F15:		sendLine += "F15"; break;
+				case VK_F16:		sendLine += "F16"; break;
+				case VK_F17:		sendLine += "F17"; break;
+				case VK_F18:		sendLine += "F18"; break;
+				case VK_F19:		sendLine += "F19"; break;
+				case VK_F20:		sendLine += "F20"; break;
+				case VK_F21:		sendLine += "F21"; break;
+				case VK_F22:		sendLine += "F22"; break;
+				case VK_F23:		sendLine += "F23"; break;
+				case VK_F24:		sendLine += "F24"; break;
+				case VK_NUMLOCK:	sendLine += "Numlock"; break;
+				case VK_SCROLL:		sendLine += "ScrollLock"; break;
+				case VK_LSHIFT:		sendLine += "LShift"; break;
+				case VK_RSHIFT:		sendLine += "RShift"; break;
+				case VK_LCONTROL:	sendLine += "LControl"; break;
+				case VK_RCONTROL:	sendLine += "RControl"; break;
+				case VK_LMENU:		sendLine += "Appskey"; break;
+				case VK_RMENU:		sendLine += "AppsKey"; break;
+				}
+				if (ifUp(key)) {
+					sendLine += " Up}";
+				}
+				else {
+					sendLine += " Down}";
+				}
+				return sendLine;
+			}
+		}
 		enum class VariableType {
 			normal,
 			tl,
@@ -136,7 +259,7 @@ namespace tl {
 			std::vector<std::string> linesOfValue = {};
 			std::string toString() const {
 				std::string s = ";fn\n"
-					+ name + "() {\n";
+					+ name + " {\n";
 				for (const std::string& line : linesOfValue) {
 					s += line + "\n";
 				}
@@ -147,8 +270,8 @@ namespace tl {
 				std::vector<std::string> lines = parser::parseStringIntoLines(s);
 				int i = 0;
 				if (lines.front().starts_with(";fn")) i = 1;
-				size_t end = lines[i].find('(');
-				name = lines[i].substr(0, end);
+				size_t end = lines[i].find(')');
+				name = lines[i].substr(0, end + 1);
 				i++;
 				//-1 size ignoring last line of '}' 
 				for (; i < lines.size(); i++) {
@@ -186,6 +309,16 @@ namespace tl {
 				return var;
 			}
 			throw std::runtime_error("Not Existing Variable name");
+		}
+		std::vector<std::string>& GetLinesOfFunctionFromVector(
+			const std::string& name,
+			std::vector<BaseFunction>& list
+		) {
+			for (BaseFunction& func : list) {
+				if (func.name != name) continue;
+				return func.linesOfValue;
+			}
+			throw std::runtime_error("Not Existing Function name");
 		}
 		namespace parser {
 			std::vector<std::string> parseStringIntoLines(
@@ -404,6 +537,9 @@ namespace tl {
 			}
 			Variable GetVariable(std::string name) {
 				return GetVariableFromVector(name, baseVariables);
+			}
+			std::vector<std::string>& GetLinesOfFunction(std::string name) {
+				return GetLinesOfFunctionFromVector(name, functions);
 			}
 			std::vector<Variable> GetAllVariables() {
 				std::vector<Variable> variables;

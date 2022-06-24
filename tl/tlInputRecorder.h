@@ -25,13 +25,15 @@ namespace tl {
 			
 			std::queue<KeyInput> keys;
 			void ifNotSamePush(KBDLLHOOKSTRUCT* data) {
+				static KeyInput last;
 				if (keys.size() == 0) {
 					keys.push(data);
+					last = keys.back();
 					return;
 				}
-				const KeyInput& last = keys.back();
-				if (last.vkCode == data->vkCode && last.flags == data->vkCode) return;
+				if (last.scanCode == data->scanCode && last.vkCode == data->vkCode && last.flags == data->flags) return;
 				keys.push(data);
+				last = keys.back();
 			}
 			LRESULT Hookproc(int code, WPARAM wParam, LPARAM lParam) {
 				if (code < 0) return CallNextHookEx(NULL, code, wParam, lParam);
