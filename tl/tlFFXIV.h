@@ -153,7 +153,7 @@ namespace tl {
 			AutoCraftScript(
 				const std::string& title,
 				const std::string& scriptDirectPath
-			) : tl::ahk::SingleScriptRuntime{ title, scriptDirectPath }
+			) : tl::ahk::SingleScriptRuntime{ title, scriptDirectPath, false }
 			{}
 		};
 

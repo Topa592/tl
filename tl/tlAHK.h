@@ -557,21 +557,22 @@ namespace tl {
 					script
 				);
 			}
-			SingleScriptRuntime(const std::string& title, const std::string& scriptDirectPath)
+			SingleScriptRuntime(const std::string& title, const std::string& scriptDirectPath, bool startUp = true)
 				: title(title)
 				, script(scriptDirectPath)
 			{
 				tl::bce::validateFile(areaComment, script);
 				ReInitializeBaseVariables();
-				StartUp();
-				UpdateAll();
+				if (startUp) {
+					StartUp();
+					UpdateAll();
+				}
 			}
 		};
 
 		class ScriptHandler {
 			std::vector<SingleScriptRuntime> scripts;
 			std::vector<SingleScriptRuntime*> outsideScripts;
-			
 		public:
 			void OpenScript(const std::string& title, const std::string& ahkScriptDirectPath) {
 				try

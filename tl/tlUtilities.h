@@ -48,5 +48,27 @@ namespace tl {
 					(chrono::high_resolution_clock::now() - sleepExtra) - toSleep;
 			}
 		};
+		class Timer {
+			std::chrono::high_resolution_clock::time_point resetTime = std::chrono::high_resolution_clock::now();
+		public:
+			bool ifTimeReset(int ms) {
+				if (ifTime(ms)) {
+					reset();
+					return true;
+				}
+				return false;
+			}
+
+			bool ifTime(int ms) {
+				auto t1 = std::chrono::high_resolution_clock::now();
+				auto total = (t1 - resetTime);
+				return (ms <= (total.count() / 1000000));
+			}
+
+			void reset() {
+				resetTime = std::chrono::high_resolution_clock::now();
+			}
+
+		};
 	}
 }

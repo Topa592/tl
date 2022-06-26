@@ -50,6 +50,7 @@ namespace tl {
 					std::atexit(AtExit);
 				}
 			}
+			bool recording = false;
 		}
 		namespace InputRecorder {
 			
@@ -66,10 +67,13 @@ namespace tl {
 					errCmd += "\nErr-Code: ";
 					errCmd += std::to_string((long long)errCode);
 					MessageBoxA(NULL, errCmd.c_str(), "Failed to Hook", NULL);
+					return;
 				}
+				impl::recording = true;
 			}
 			void StopRecording() {
 				if (impl::KeyHookWnd) UnhookWindowsHookEx(impl::KeyHookWnd);
+				impl::recording = false;
 			}
 			std::vector<KeyInput> GetRecording() {
 				StopRecording();
@@ -80,6 +84,9 @@ namespace tl {
 					keys.pop();
 				}
 				return inputs;
+			}
+			bool IfRecording() {
+				return impl::recording;
 			}
 		}
 	}
