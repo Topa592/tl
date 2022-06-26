@@ -126,8 +126,11 @@ namespace tl {
 			std::string GetSleep(const tl::ir::KeyInput& previous, const tl::ir::KeyInput& cur) {
 				std::string lineSleep = "  Sleep ";
 				int sleepTime = cur.time - previous.time;
-				if (sleepTime < 50) sleepTime = 50;
+				if (sleepTime < 75) sleepTime = 75;
 				if (sleepTime > 2500) sleepTime = 2500;
+				if ((previous.vkCode == VK_NUMPAD0) || (cur.vkCode == VK_NUMPAD0)) {
+					if (previous.vkCode != cur.vkCode)  sleepTime = 3500;
+				}
 				lineSleep += std::to_string(sleepTime);
 				return lineSleep;
 			}
