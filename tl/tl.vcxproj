@@ -144,7 +144,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="tlAHK.h" />
-    <ClInclude Include="tlBasicGuiRuntime.h" />
     <ClInclude Include="tlBasicCodeEditor.h" />
     <ClInclude Include="tlFFXIV.h" />
     <ClInclude Include="tlFilesystem.h" />

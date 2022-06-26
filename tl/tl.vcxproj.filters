@@ -13,31 +13,34 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Header Files\backend">
+      <UniqueIdentifier>{be446a5a-724a-4a85-b9ec-c87aa4e08ec3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\usingBackend">
+      <UniqueIdentifier>{bd516d52-0a00-4ea2-80ae-bc114105a351}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="tlBasicGuiRuntime.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="tlBasicCodeEditor.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="tlAHK.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="tlFFXIV.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="tlFilesystem.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="tlInput.h">
+      <Filter>Header Files\backend</Filter>
     </ClInclude>
     <ClInclude Include="tlInputRecorder.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\backend</Filter>
     </ClInclude>
-    <ClInclude Include="tlInput.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="tlBasicCodeEditor.h">
+      <Filter>Header Files\backend</Filter>
+    </ClInclude>
+    <ClInclude Include="tlFilesystem.h">
+      <Filter>Header Files\backend</Filter>
     </ClInclude>
     <ClInclude Include="tlUtilities.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\backend</Filter>
+    </ClInclude>
+    <ClInclude Include="tlAHK.h">
+      <Filter>Header Files\usingBackend</Filter>
+    </ClInclude>
+    <ClInclude Include="tlFFXIV.h">
+      <Filter>Header Files\usingBackend</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
