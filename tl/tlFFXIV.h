@@ -9,9 +9,8 @@
 
 namespace tl {
 	namespace ffxiv {
-		//stands for teamcraft
-		namespace tc {
-
+		namespace keybinds {
+			static char key_confirm = VK_NUMPAD0;
 		}
 		class CraftMacro {
 		private:
@@ -128,7 +127,7 @@ namespace tl {
 				int sleepTime = cur.time - previous.time;
 				if (sleepTime < 75) sleepTime = 75;
 				if (sleepTime > 2500) sleepTime = 2500;
-				if ((previous.vkCode == VK_NUMPAD0) || (cur.vkCode == VK_NUMPAD0)) {
+				if ((previous.vkCode == keybinds::key_confirm) || (cur.vkCode == keybinds::key_confirm)) {
 					if (previous.vkCode != cur.vkCode)  sleepTime = 3500;
 				}
 				lineSleep += std::to_string(sleepTime);
