@@ -90,36 +90,11 @@ namespace tl {
 				DrawVariables();
 				ImGui::End();
 			}
-			//void PlaySingleKey(const tl::ir::KeyInput& key) {
-			//	DWORD up = NULL;
-			//	if (key.flags & LLKHF_UP) up = KEYEVENTF_KEYUP;
-			//	keybd_event((BYTE)key.vkCode, (BYTE)key.scanCode, up, NULL);
-			//}
-			//void PlayBack(int count) {
-			//	Sleep(3000);
-			//	for (; count > 0; count--) {
-			//		tl::ir::KeyInput previous = inputs.front();
-			//		PlaySingleKey(previous);
-			//
-			//		for (int i = 1; i < inputs.size(); i++) {
-			//			const auto& key = inputs[i];
-			//			Sleep(key.time - previous.time);
-			//			PlaySingleKey(key);
-			//			previous = key;
-			//		}
-			//	}
-			//}
 			bool ifUp(const tl::ir::KeyInput& key) {
 				return (key.flags & LLKHF_UP);
 			}
 			std::string GetSend(const tl::ir::KeyInput& key) {
 				std::string lineSend = tl::ahk::windows::vkcodeToAHKSend(key);
-				//std::string lineSend = "  Send {vk";
-				//lineSend += std::format("{:x}sc{:x}", key.vkCode, key.scanCode);
-				//if (ifUp(key)) {
-				//	lineSend += " Up";
-				//}
-				//lineSend += "}";
 				return lineSend;
 			}
 			std::string GetSleep(const tl::ir::KeyInput& previous, const tl::ir::KeyInput& cur) {
