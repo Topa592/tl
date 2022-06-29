@@ -413,6 +413,7 @@ namespace tl {
 			) {
 				std::vector<BaseVariable> base;
 				std::vector<BaseVariable> tl;
+				std::vector<BaseFunction> fn;
 				
 				for (int i = 0; i < linesOfText.size(); i++) {
 					std::string line = linesOfText[i];
@@ -426,7 +427,7 @@ namespace tl {
 						tempFunc += line + "\n";
 						BaseFunction func;
 						func.fromString(tempFunc);
-						functions.push_back(func);
+						fn.push_back(func);
 						continue;
 					}
 					BaseVariable var;
@@ -438,6 +439,7 @@ namespace tl {
 					}
 					else base.push_back(var);
 				}
+				functions = fn;
 				baseVariables = base;
 				tlVariables = tl;
 			}
