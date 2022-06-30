@@ -94,7 +94,11 @@ namespace tl {
 				return (key.flags & LLKHF_UP);
 			}
 			std::string GetSend(const tl::ir::KeyInput& key) {
-				std::string lineSend = tl::ahk::windows::vkcodeToAHKSend(key);
+				//std::string lineSend = "  Send ";
+				//lineSend += tl::ahk::windows::vkcodeToAHK(key);
+				std::string lineSend = "  ControlSend, ,";
+				lineSend += tl::ahk::windows::vkcodeToAHK(key);
+				lineSend += ", FINAL FANTASY XIV";
 				return lineSend;
 			}
 			std::string GetSleep(const tl::ir::KeyInput& previous, const tl::ir::KeyInput& cur) {

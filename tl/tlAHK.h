@@ -23,8 +23,8 @@ namespace tl {
 			bool ifUp(const tl::ir::KeyInput& key) {
 				return (key.flags & LLKHF_UP);
 			}
-			std::string vkcodeToAHKSend(const tl::ir::KeyInput& key) {
-				std::string sendLine = "Send {";
+			std::string vkcodeToAHK(const tl::ir::KeyInput& key) {
+				std::string sendLine = "{";
 				switch (key.vkCode)
 				{
 				case VK_BACK:		sendLine += "Backspace"; break;
