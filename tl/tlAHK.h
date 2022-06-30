@@ -126,10 +126,10 @@ namespace tl {
 				case VK_F24:		sendLine += "F24"; break;
 				case VK_NUMLOCK:	sendLine += "Numlock"; break;
 				case VK_SCROLL:		sendLine += "ScrollLock"; break;
-				case VK_LSHIFT:		sendLine += "LShift"; break;
-				case VK_RSHIFT:		sendLine += "RShift"; break;
-				case VK_LCONTROL:	sendLine += "LControl"; break;
-				case VK_RCONTROL:	sendLine += "RControl"; break;
+				case VK_LSHIFT:		sendLine += "Shift"; break;
+				case VK_RSHIFT:		sendLine += "Shift"; break;
+				case VK_LCONTROL:	sendLine += "Control"; break;
+				case VK_RCONTROL:	sendLine += "Control"; break;
 				case VK_LMENU:		sendLine += "Appskey"; break;
 				case VK_RMENU:		sendLine += "AppsKey"; break;
 				}
