@@ -104,7 +104,7 @@ namespace tl {
 			std::string GetSleep(const tl::ir::KeyInput& previous, const tl::ir::KeyInput& cur) {
 				std::string lineSleep = "  Sleep ";
 				int sleepTime = cur.time - previous.time + 50;
-				if (sleepTime < 75) sleepTime = 75;
+				if (sleepTime < 200) sleepTime = 200;
 				if (sleepTime > 2500) sleepTime = 2500;
 				if ((previous.vkCode == keybinds::key_confirm) || (cur.vkCode == keybinds::key_confirm)) {
 					if (previous.vkCode != cur.vkCode)  sleepTime = 3500;
