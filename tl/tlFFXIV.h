@@ -104,11 +104,8 @@ namespace tl {
 			std::string GetSleep(const tl::ir::KeyInput& previous, const tl::ir::KeyInput& cur) {
 				std::string lineSleep = "  Sleep ";
 				int sleepTime = cur.time - previous.time + 50;
-				if (sleepTime < 200) sleepTime = 200;
+				if (sleepTime < 250) sleepTime = 250;
 				if (sleepTime > 2500) sleepTime = 2500;
-				if ((previous.vkCode == keybinds::key_confirm) || (cur.vkCode == keybinds::key_confirm)) {
-					if (previous.vkCode != cur.vkCode)  sleepTime = 3500;
-				}
 				lineSleep += std::to_string(sleepTime);
 				return lineSleep;
 			}
@@ -235,5 +232,23 @@ namespace tl {
 			}
 		};
 		
+		class CombatScript : public tl::ahk::SingleScriptRuntime {
+		public:
+			void DrawRecording() {
+
+			}
+			CombatScript(
+				const std::string& title,
+				const std::string& scriptDirectPath
+			) : tl::ahk::SingleScriptRuntime{ title, scriptDirectPath }
+			{}
+			void DrawWindow() override {
+				ImGui::Begin(title.c_str());
+				DrawToolbar();
+				DrawRecording();
+				DrawVariables();
+				ImGui::End();
+			}
+		};
 	}
 }
