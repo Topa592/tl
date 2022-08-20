@@ -104,7 +104,7 @@ namespace tl {
 			std::string GetSleep(const tl::ir::KeyInput& previous, const tl::ir::KeyInput& cur) {
 				std::string lineSleep = "  Sleep ";
 				int sleepTime = cur.time - previous.time + 50;
-				if (sleepTime < 250) sleepTime = 250;
+				if (sleepTime < 300) sleepTime = 300;
 				if (sleepTime > 2500) sleepTime = 2500;
 				lineSleep += std::to_string(sleepTime);
 				return lineSleep;
@@ -142,8 +142,9 @@ namespace tl {
 		public:
 			CraftingScript(
 				const std::string& title,
-				const std::string& scriptDirectPath
-			) : tl::ahk::SingleScriptRuntime{ title, scriptDirectPath }
+				const std::string& scriptDirectPath,
+				const bool startUp = false
+			) : tl::ahk::SingleScriptRuntime{ title, scriptDirectPath, startUp }
 				, craft("Autocraft.ahk", tl::filesystem::GetFolderPath(scriptDirectPath) + "Autocraft.ahk")
 			{}
 			std::vector<tl::ahk::Variable> Find3Variables(const std::string& varName) {
@@ -220,8 +221,9 @@ namespace tl {
 		public:
 			GatheringScript(
 				const std::string& title,
-				const std::string& scriptDirectPath
-			) : tl::ahk::SingleScriptRuntime{ title, scriptDirectPath }
+				const std::string& scriptDirectPath,
+				const bool startUp = false
+			) : tl::ahk::SingleScriptRuntime{ title, scriptDirectPath, startUp }
 			{}
 			void DrawWindow() override {
 				ImGui::Begin(title.c_str());
@@ -239,8 +241,9 @@ namespace tl {
 			}
 			CombatScript(
 				const std::string& title,
-				const std::string& scriptDirectPath
-			) : tl::ahk::SingleScriptRuntime{ title, scriptDirectPath }
+				const std::string& scriptDirectPath,
+				const bool startUp = false
+			) : tl::ahk::SingleScriptRuntime{ title, scriptDirectPath, startUp }
 			{}
 			void DrawWindow() override {
 				ImGui::Begin(title.c_str());

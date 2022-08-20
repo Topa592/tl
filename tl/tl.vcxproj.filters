@@ -42,5 +42,8 @@
     <ClInclude Include="tlFFXIV.h">
       <Filter>Header Files\usingBackend</Filter>
     </ClInclude>
+    <ClInclude Include="tlsql.h">
+      <Filter>Header Files\backend</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -149,6 +149,7 @@
     <ClInclude Include="tlFilesystem.h" />
     <ClInclude Include="tlInput.h" />
     <ClInclude Include="tlInputRecorder.h" />
+    <ClInclude Include="tlsql.h" />
     <ClInclude Include="tlUtilities.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
