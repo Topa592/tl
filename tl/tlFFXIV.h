@@ -109,31 +109,44 @@ namespace tl {
 			}
 			void PrepDraw(int craftCount) {
 				this->craftCount = craftCount;
-			}
-			//bool dropboxOpen = false;
+			}			
 			void DrawWindow() override {
-				if (!ImGui::CollapsingHeader("SavedCrafts")) return;
-				if (ImGui::Button("Reload##SavedCrafts")) {
-					this->JustUpdateAll();
+				static int currentSelected = -1;
+				static bool renaming = false;
+				if (!ImGui::CollapsingHeader("SavedCrafts##Autocraftlist")) return;
+				if (ImGui::Button("Craft##Autocraftlist")) {
+					if (currentSelected != -1) RunCraft(currentSelected);
 				}
-				for (int i = 1; i < functions.size(); i++) {
-					auto& func = functions[i];
-					std::string s = "Craft##" + std::to_string(i);
-					if (ImGui::Button(s.c_str())) {
-						RunCraft(i);
-					}
-					ImGui::SameLine();
-					s = "##" + std::to_string(i);
-					ImGui::InputText(s.c_str(), &functions[i].name);
-					ImGui::SameLine();
-					s = "Delete##" + std::to_string(i);
-					if (ImGui::Button(s.c_str())) {
-						Sleep(100);
-						DeleteFunc(i);
+				ImGui::SameLine();
+				if (ImGui::Button("Rename##Autocraftlist")) {
+					if (renaming == true) {
 						this->JustUpdateAll();
-						i--;
+					}
+					renaming = !renaming;
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("Delete##Autocraftlist")) {
+					if (currentSelected != -1) {
+						DeleteFunc(currentSelected);
+						this->JustUpdateAll();
+						currentSelected = -1;
 					}
 				}
+				ImGui::BeginListBox("");
+				for (int i = 1; i < functions.size(); i++) {
+					if (renaming) {
+						ImGui::PushID(i);
+						ImGui::InputText("", &functions[i].name);
+						ImGui::PopID();
+						continue;
+					}
+					bool selected = false;
+					if (i == currentSelected) selected = true;
+					if (ImGui::Selectable(functions[i].name.c_str(), selected)) {
+						currentSelected = i;
+					}
+				}
+				ImGui::EndListBox();
 			}
 		};
 
