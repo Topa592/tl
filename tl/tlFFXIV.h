@@ -80,6 +80,62 @@ namespace tl {
 				updateSleepTimesByString(fullTextOfMacro);
 			}
 		};
+		
+		class AutoCraftList : public tl::ahk::SingleScriptRuntime {
+		public:
+			const std::string prefix = "tl_savedCraft_";
+			int craftCount = 0;
+			AutoCraftList(
+				const std::string& title,
+				const std::string& scriptDirectPath
+			) : tl::ahk::SingleScriptRuntime{ title, scriptDirectPath, false }
+			{}
+			void AddNewFunc(tl::ahk::BaseFunction func) {
+				if (func.name == functions[0].name) {
+					func.name = "Craft" + std::to_string(functions.size()) + "()";
+				}
+				functions.push_back(func);
+			}
+			void DeleteFunc(int index) {
+				functions.erase(functions.begin() + index);
+			}
+			void RunCraft(int index) {
+				tl::ahk::Variable crafts = this->GetVariable("craftCount");
+				crafts.value = std::to_string(craftCount);
+				auto& func = functions[index];
+				tl::ahk::BaseFunction& craftFunc = functions[0];
+				craftFunc.linesOfValue = func.linesOfValue;
+				this->UpdateAll(); //also runs it
+			}
+			void PrepDraw(int craftCount) {
+				this->craftCount = craftCount;
+			}
+			//bool dropboxOpen = false;
+			void DrawWindow() override {
+				if (!ImGui::CollapsingHeader("SavedCrafts")) return;
+				if (ImGui::Button("Reload##SavedCrafts")) {
+					this->JustUpdateAll();
+				}
+				for (int i = 1; i < functions.size(); i++) {
+					auto& func = functions[i];
+					std::string s = "Craft##" + std::to_string(i);
+					if (ImGui::Button(s.c_str())) {
+						RunCraft(i);
+					}
+					ImGui::SameLine();
+					s = "##" + std::to_string(i);
+					ImGui::InputText(s.c_str(), &functions[i].name);
+					ImGui::SameLine();
+					s = "Delete##" + std::to_string(i);
+					if (ImGui::Button(s.c_str())) {
+						Sleep(100);
+						DeleteFunc(i);
+						this->JustUpdateAll();
+						i--;
+					}
+				}
+			}
+		};
 
 		class AutoCraftScript : public tl::ahk::SingleScriptRuntime {
 		public:
@@ -128,17 +184,23 @@ namespace tl {
 				UpdateFunction();
 				UpdateAll();
 			}
+			const tl::ahk::BaseFunction& GetRawAHKFuncText() {
+				for (auto& func : functions) {
+					if (func.name == "Craft()") return func;
+				}
+			}
 			AutoCraftScript(
 				const std::string& title,
 				const std::string& scriptDirectPath
 			) : tl::ahk::SingleScriptRuntime{ title, scriptDirectPath, false }
 			{}
 		};
+		
 
 		class CraftingScript : public tl::ahk::SingleScriptRuntime {
 			tl::ffxiv::CraftMacro macro;
-			
 			AutoCraftScript craft;
+			AutoCraftList craftList;
 		public:
 			CraftingScript(
 				const std::string& title,
@@ -146,6 +208,7 @@ namespace tl {
 				const bool startUp = false
 			) : tl::ahk::SingleScriptRuntime{ title, scriptDirectPath, startUp }
 				, craft("Autocraft.ahk", tl::filesystem::GetFolderPath(scriptDirectPath) + "Autocraft.ahk")
+				, craftList("AutoCraftList.ahk", tl::filesystem::GetFolderPath(scriptDirectPath) + "AutoCraftList.ahk")
 			{}
 			std::vector<tl::ahk::Variable> Find3Variables(const std::string& varName) {
 				std::vector<tl::ahk::Variable> variables;
@@ -187,6 +250,9 @@ namespace tl {
 					directWindowOpen = false;
 					directMacroText = "";
 				}
+				if (ImGui::Button("SaveCraftScript")) {
+
+				}
 				ImGui::InputTextMultiline("", &directMacroText);
 				ImGui::End();
 			}
@@ -206,11 +272,19 @@ namespace tl {
 				if (ImGui::Button("stopRecording")) {
 					tl::ir::InputRecorder::StopRecording();
 					craft.inputs = tl::ir::InputRecorder::GetRecording();
+					Sleep(50);
 				}
 				ImGui::InputText("PlaybackCount", &playbackCount);
 				if (ImGui::Button("StartCraftScript")) {
 					craft.StartScript(playbackCount);
 				}
+				if (ImGui::Button("SaveRecording")) {
+					craft.UpdateFunction();
+					craftList.AddNewFunc(craft.GetFunction("Craft()"));
+					craftList.JustUpdateAll();
+				}
+				craftList.PrepDraw(std::stoi(playbackCount));
+				craftList.DrawWindow();
 				ImGui::Separator();
 				DrawVariables();
 				ImGui::End();

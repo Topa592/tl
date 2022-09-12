@@ -457,6 +457,9 @@ namespace tl {
 				return LastTimeModified() == lastTimeThisUpdated;
 			}
 		public:
+			std::vector<tl::ahk::BaseFunction>& GetBaseFuncListReference() {
+				return functions;
+			}
 			void Shutdown() {
 				Variable shutdown = GetVariableFromVector("tl_shutdown", tlVariables);
 				shutdown.value = "true";
@@ -523,7 +526,7 @@ namespace tl {
 				fullText += tl::ahk::parser::parseVariablesIntoString(functions);
 				return fullText;
 			}
-			void UpdateAll() {
+			void JustUpdateAll() {
 				if (IfFileLastTimeUpdatedByThis()) {
 					tl::bce::ReplaceWithText(
 						areaComment,
@@ -535,6 +538,9 @@ namespace tl {
 					ReInitializeBaseVariables();
 				}
 				lastTimeThisUpdated = LastTimeModified();
+			}
+			void UpdateAll() {
+				JustUpdateAll();
 				ReOpenScript();
 			}
 			Variable GetVariable(std::string name) {
@@ -549,6 +555,12 @@ namespace tl {
 					variables.push_back(var);
 				}
 				return variables;
+			}
+			const tl::ahk::BaseFunction& GetFunction(std::string name) {
+				for (const BaseFunction& func : functions) {
+					if (func.name == name) return func;
+				}
+				throw std::runtime_error("Not Existing Variable name");
 			}
 			void FixStartStateOutsideProgram() {
 				Variable shutdown = GetVariableFromVector("tl_shutdown", tlVariables);
