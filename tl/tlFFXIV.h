@@ -84,7 +84,7 @@ namespace tl {
 		class AutoCraftList : public tl::ahk::SingleScriptRuntime {
 		public:
 			const std::string prefix = "tl_savedCraft_";
-			int craftCount = 0;
+			int craftCount = 1;
 			AutoCraftList(
 				const std::string& title,
 				const std::string& scriptDirectPath
@@ -107,14 +107,12 @@ namespace tl {
 				craftFunc.linesOfValue = func.linesOfValue;
 				this->UpdateAll(); //also runs it
 			}
-			void PrepDraw(int craftCount) {
-				this->craftCount = craftCount;
-			}
 			void DrawWindow() override {
 				static int currentSelected = -1;
 				static bool renaming = false;
 				static bool reordering = false;
 				if (!ImGui::CollapsingHeader("SavedCrafts##Autocraftlist")) return;
+				ImGui::InputInt("Craft Count##Autocraftlist", &craftCount);
 				if (ImGui::Button("Craft##Autocraftlist")) {
 					if (currentSelected != -1) RunCraft(currentSelected);
 				}
@@ -265,7 +263,6 @@ namespace tl {
 
 			bool directWindowOpen = false;
 			std::string directMacroText = "";
-			std::string playbackCount = "1";
 
 			void DirectMacro() {
 				if (!ImGui::Begin("New Macro", &directWindowOpen)) {
@@ -309,16 +306,16 @@ namespace tl {
 					craft.inputs = tl::ir::InputRecorder::GetRecording();
 					Sleep(50);
 				}
-				ImGui::InputText("PlaybackCount", &playbackCount);
+				static int playbackCount = 1;
+				ImGui::InputInt("PlaybackCount", &playbackCount);
 				if (ImGui::Button("StartCraftScript")) {
-					craft.StartScript(playbackCount);
+					craft.StartScript(std::to_string(playbackCount));
 				}
 				if (ImGui::Button("SaveRecording")) {
 					craft.UpdateFunction();
 					craftList.AddNewFunc(craft.GetFunction("Craft()"));
 					craftList.JustUpdateAll();
 				}
-				craftList.PrepDraw(std::stoi(playbackCount));
 				craftList.DrawWindow();
 				ImGui::Separator();
 				DrawVariables();
