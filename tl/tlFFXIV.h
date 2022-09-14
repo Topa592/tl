@@ -163,6 +163,7 @@ namespace tl {
 						{
 							functions[i] = functions[n_next];
 							functions[n_next] = func;
+							currentSelected = n_next;
 							ImGui::ResetMouseDragDelta();
 						}
 					}
