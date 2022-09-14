@@ -109,20 +109,30 @@ namespace tl {
 			}
 			void PrepDraw(int craftCount) {
 				this->craftCount = craftCount;
-			}			
+			}
 			void DrawWindow() override {
 				static int currentSelected = -1;
 				static bool renaming = false;
+				static bool reordering = false;
 				if (!ImGui::CollapsingHeader("SavedCrafts##Autocraftlist")) return;
 				if (ImGui::Button("Craft##Autocraftlist")) {
 					if (currentSelected != -1) RunCraft(currentSelected);
 				}
 				ImGui::SameLine();
 				if (ImGui::Button("Rename##Autocraftlist")) {
-					if (renaming == true) {
+					reordering = false;
+					if (renaming) {
 						this->JustUpdateAll();
 					}
 					renaming = !renaming;
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("Reorder##AutocraftList")) {
+					renaming = false;
+					if (reordering) {
+						this->JustUpdateAll();
+					}
+					reordering = !reordering;
 				}
 				ImGui::SameLine();
 				if (ImGui::Button("Delete##Autocraftlist")) {
@@ -140,10 +150,21 @@ namespace tl {
 						ImGui::PopID();
 						continue;
 					}
-					bool selected = false;
-					if (i == currentSelected) selected = true;
-					if (ImGui::Selectable(functions[i].name.c_str(), selected)) {
+					bool ifSelected = false;
+					if (i == currentSelected) ifSelected = true;
+					if (ImGui::Selectable(functions[i].name.c_str(), ifSelected)) {
 						currentSelected = i;
+					}
+					if (reordering && ImGui::IsItemActive() && !ImGui::IsItemHovered())
+					{
+						tl::ahk::BaseFunction func = functions[i];
+						int n_next = i + (ImGui::GetMouseDragDelta(0).y < 0.f ? -1 : 1);
+						if (n_next >= 1 && n_next < functions.size())
+						{
+							functions[i] = functions[n_next];
+							functions[n_next] = func;
+							ImGui::ResetMouseDragDelta();
+						}
 					}
 				}
 				ImGui::EndListBox();
