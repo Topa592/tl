@@ -82,6 +82,206 @@ namespace tl {
 		};
 		
 		class AutoCraftList : public tl::ahk::SingleScriptRuntime {
+		private:
+			void AddKeyModifier(std::vector<std::string>& newLines, std::string modifierText) {
+				std::string startText = "ControlSend, , {";
+				std::string endText = "}, FINAL FANTASY XIV";
+				std::string sleepText = "Sleep ";
+				newLines.push_back(sleepText + "300");
+				newLines.push_back(startText + modifierText + endText);
+			}
+			void MigrateNewKeybindToFunction(tl::ahk::BaseFunction& func, const std::vector<std::string>& oldKeybinds, const std::vector<std::string>& newKeybinds) {
+				if (oldKeybinds.size() != newKeybinds.size()) throw "different sized keybinds";
+				bool shiftDown = false;
+				bool ctrlDown = false;
+				bool altDown = false;
+				std::vector<std::string> newActions = {};
+				for (const std::string& s : func.linesOfValue) {
+					if (s.find("Sleep") != std::string::npos) continue;
+					std::string data = "";
+					{
+						std::string::size_type start = s.find('{') + 1; //first character
+						std::string::size_type end = s.find('}') - 1; //last character
+						if (start == std::string::npos || end == std::string::npos) throw "invalid autocraftlist";
+						data = s.substr(start, end - start + 1);
+					}
+					if (data.find("Shift") != std::string::npos) {
+						if (data.find("Down") != std::string::npos) {
+							shiftDown = true;
+						}
+						else {
+							shiftDown = false;
+						}
+						continue;
+					}
+					if (data.find("Ctrl") != std::string::npos) {
+						if (data.find("Down") != std::string::npos) {
+							ctrlDown = true;
+						}
+						else {
+							ctrlDown = false;
+						}
+						continue;
+					}
+					if (data.find("Alt") != std::string::npos) {
+						if (data.find("Down") != std::string::npos) {
+							altDown = true;
+						}
+						else {
+							altDown = false;
+						}
+						continue;
+					}
+					if (data.find("Up") != std::string::npos) {
+						continue;
+					}
+					std::string key = "";
+					if (shiftDown) key += "+";
+					if (ctrlDown) key += "^";
+					if (altDown) key += "!";
+					key += data.front();
+					for (int i = 0; i < oldKeybinds.size(); i++) {
+						if (key == oldKeybinds[i]) {
+							newActions.push_back(newKeybinds[i]);
+							break;
+						}
+						if (i == oldKeybinds.size() - 1) {
+							throw "invalid oldkeybind in autocraftlist";
+						}
+					}
+				}
+
+				int timeBetweenFfxivActions = 2500;
+				int timeBetweenKeys = 300;
+				int curSleep = 0;
+				std::string startText = "ControlSend, , {";
+				std::string endText = "}, FINAL FANTASY XIV";
+				std::string sleepText = "Sleep ";
+				std::vector<std::string> newLines = {};
+				shiftDown = false;
+				ctrlDown = false;
+				altDown = false;
+				for (const std::string& cur : newActions) {
+					curSleep = 0;
+					if (cur.find('+') != std::string::npos) {
+						if (!shiftDown) {
+							curSleep += timeBetweenKeys;
+							AddKeyModifier(newLines, "Shift Down");
+							shiftDown = true;
+						}
+					}
+					else {
+						if (shiftDown) {
+							curSleep += timeBetweenKeys;
+							AddKeyModifier(newLines, "Shift Up");
+							shiftDown = false;
+						}
+					}
+					if (cur.find('^') != std::string::npos) {
+						if (!ctrlDown) {
+							curSleep += timeBetweenKeys;
+							AddKeyModifier(newLines, "Ctrl Down");
+							ctrlDown = true;
+						}
+					}
+					else {
+						if (ctrlDown) {
+							curSleep += timeBetweenKeys;
+							AddKeyModifier(newLines, "Ctrl Up");
+							ctrlDown = false;
+						}
+					}
+					if (cur.find('!') != std::string::npos) {
+						if (!altDown) {
+							curSleep += timeBetweenKeys;
+							AddKeyModifier(newLines, "Alt Down");
+							altDown = true;
+						}
+					}
+					else {
+						if (altDown) {
+							curSleep += timeBetweenKeys;
+							AddKeyModifier(newLines, "Alt Up");
+							altDown = false;
+						}
+					}
+					newLines.push_back(sleepText + std::to_string(timeBetweenFfxivActions - curSleep));
+					newLines.push_back(startText + cur.back() + " Down" + endText);
+					newLines.push_back(sleepText + "300");
+					newLines.push_back(startText + cur.back() + " Up" + endText);
+				}
+				if (shiftDown) AddKeyModifier(newLines, "Shift Up");
+				if (ctrlDown) AddKeyModifier(newLines, "Ctrl Up");
+				if (altDown) AddKeyModifier(newLines, "Alt Up");
+				func.linesOfValue = newLines;
+			}
+			std::vector<std::string> GetCurrentKeybinds() {
+				std::fstream fs("CraftingScriptKeyBindHistory.txt");
+				std::string text = "";
+				std::string line;
+				for (; std::getline(fs, line);) {} //line becomes last line
+				fs.close();
+				line = line.substr(line.find('|') + 1);
+				std::vector<std::string> keys = {};
+				std::string curKey = "";
+				int curIndex = 0;
+				while (line.find('|', curIndex) != std::string::npos) {
+					int endIndex = line.find('|', curIndex);
+					keys.push_back(line.substr(curIndex, endIndex - curIndex));
+					curIndex = endIndex + 1;
+				}
+				keys.push_back(line.substr(curIndex));
+				return keys;
+			}
+			void AddNewKeybindToHistory(const std::vector<std::string>& newKeybinds) {
+				std::fstream fs("CraftingScriptKeyBindHistory.txt");
+				std::string fullText = "";
+				std::string lastLine;
+				for (std::string line; std::getline(fs, line);) {
+					fullText += line + "\n";
+					lastLine = line;
+				}
+				fs.close();
+				int pos = lastLine.find('|');
+				int count = std::stoi(lastLine.substr(0, pos));
+				count++;
+				fullText += std::to_string(count);
+				for (std::string key : newKeybinds) {
+					fullText += "|" + key;
+				}
+				fs.open("CraftingScriptKeyBindHistory.txt", std::ios::out);
+				fs << fullText;
+				fs.close();
+			}
+			void MigrateAllFunctions(const std::vector<std::string>& newKeybinds) {
+				std::vector<std::string> oldKeybinds = GetCurrentKeybinds();
+				for (int i = 1; i < functions.size(); i++) {
+					MigrateNewKeybindToFunction(functions[i], oldKeybinds, newKeybinds);
+				}
+			}
+			void DrawKeybinds() {
+				static std::vector<std::string> allKeybindNames = { "Crafting Log", "Basic Synthesis", "Basic Touch", "Master's Mend", "Hasty Touch", "Rapid Synthesis", "Observe", "Tricks of the Trade", "Waste Not", "Veneration", "Standard Touch", "Great Strides", "Innovation", "Final Appraisal", "Waste Not II", "Byregot's Blessing", "Precise Touch", "Muscle Memory", "Careful Synthesis", "Manipulation", "Prudent Touch", "Focused Synthesis", "Focused Touch", "Reflect", "Preparatory Touch", "Groundwork", "Delicate Synthesis", "Intensive Synthesis", "Trained Eye", "Advanced Touch", "Prudent Synthesis", "Trained Finesse" };
+				static std::vector<std::string> allKeybinds = this->GetCurrentKeybinds();
+				if (allKeybindNames.size() != allKeybinds.size()) {
+					ImGui::Text("Invalid keybind data");
+					return;
+				}
+				if (ImGui::Button("Save and Migrate##AutoCraftListKeybindsSave")) {
+					MigrateAllFunctions(allKeybinds);
+					AddNewKeybindToHistory(allKeybinds);
+					this->JustUpdateAll();
+				}
+				if (ImGui::BeginListBox("##AutocraftListKeybinds")) {
+					ImGui::PushItemWidth(30);
+					for (int i = 0; i < allKeybindNames.size(); i++) {
+						ImGui::PushID(i);
+						ImGui::InputText(allKeybindNames[i].c_str(), &allKeybinds[i]);
+						ImGui::PopID();
+					}
+					ImGui::PopItemWidth();
+					ImGui::EndListBox();
+				}
+			}
 		public:
 			const std::string prefix = "tl_savedCraft_";
 			int craftCount = 1;
@@ -140,7 +340,7 @@ namespace tl {
 						currentSelected = -1;
 					}
 				}
-				ImGui::BeginListBox("");
+				ImGui::BeginListBox("##AutocraftListList");
 				for (int i = 1; i < functions.size(); i++) {
 					if (renaming) {
 						ImGui::PushID(i);
@@ -167,6 +367,10 @@ namespace tl {
 					}
 				}
 				ImGui::EndListBox();
+				if (ImGui::TreeNode("Keybinds##Autocraftlist")) {
+					DrawKeybinds();
+					ImGui::TreePop();
+				}
 			}
 		};
 

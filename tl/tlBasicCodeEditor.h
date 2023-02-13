@@ -45,6 +45,14 @@ namespace tl {
 			fs.close();
 			return copyText;
 		}
+		std::string PlainFullText(std::fstream& fs) {
+			std::string fullText = "";
+			for (std::string line; std::getline(fs, line);) {
+				fullText += line + "\n";
+			}
+			fullText.pop_back(); //removes last linechange
+			return fullText;
+		}
 		std::string FindFullText(const std::string& areaComment, const std::string& text, std::fstream& fs) {
 			std::string fullText;
 			//text before areaComment

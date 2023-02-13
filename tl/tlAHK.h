@@ -9,6 +9,8 @@
 #include "imgui.h"
 #include "imgui_stdlib.h"
 #include "tlInputRecorder.h"
+#include "tlImgui.h"
+#include "tlFilesystem.h"
 
 /*
 * on autohotkey #SingleIstance Force
@@ -16,6 +18,35 @@
 
 namespace tl {
 	namespace ahk {
+		namespace closingFixer {
+			namespace impl {
+				std::vector<std::string> scripts;
+				void AddScriptToBeFixedAtEnd(std::string directPath) {
+					scripts.push_back(directPath);
+				}
+				
+				void FixAllScriptStartingStates() {
+					Sleep(3000);
+					for (std::string scriptPath : scripts) {
+						std::fstream fs(scriptPath);
+						std::string text = "";
+						for (std::string line; std::getline(fs, line);) {
+							if (line == "tl_shutdown := true") {
+								line = "tl_shutdown := false";
+							}
+							text += line + '\n';
+						}
+						fs.close();
+						fs.open(scriptPath, std::ios::out);
+						fs << text;
+						fs.close();
+					}
+				}
+			}
+			void AddScriptToBeFixedAtEnd(std::string directPath) {
+				impl::AddScriptToBeFixedAtEnd(directPath);
+			}
+		}
 		namespace parser {
 			std::vector<std::string> parseStringIntoLines(const std::string);
 		}
@@ -379,9 +410,10 @@ namespace tl {
 		}
 
 		class SingleScriptRuntime {
-		protected:
-			std::string script;
+		public:
+			const std::string scriptDirectPath;
 			std::string title;
+		protected:
 			const std::string areaComment = ";tlahkruntime1";
 			std::vector<BaseVariable> baseVariables;
 			std::vector<BaseVariable> tlVariables;
@@ -391,22 +423,12 @@ namespace tl {
 			void ReOpenScript() {
 				auto time = std::chrono::steady_clock::now();
 				if (time - lastTimeRanScript < std::chrono::seconds(2)) std::this_thread::sleep_for(std::chrono::seconds(2));
-				RunExec(script);
+				RunExec(scriptDirectPath);
 				lastTimeRanScript = std::chrono::steady_clock::now();
 			}
 			void StartUp() {
 				Variable shutdown = GetVariableFromVector("tl_shutdown", tlVariables);
 				shutdown.value = "false";
-			}
-			void Turnon() {
-				Variable shutdown = GetVariableFromVector("tl_shutdown", tlVariables);
-				shutdown.value = "false";
-				UpdateAll();
-			}
-			void Suspend() {
-				Variable suspend = GetVariableFromVector("tl_suspend", tlVariables);
-				suspend.value = (suspend.value == "true") ? "false" : "true";
-				UpdateAll();
 			}
 			void ParseVariables(
 				const std::vector<std::string>& linesOfText
@@ -446,12 +468,12 @@ namespace tl {
 			void ReInitializeBaseVariables() {
 				ParseVariables(
 					tl::ahk::parser::parseStringIntoLines(
-						tl::ahk::fileReaders::fileAreaIntoString(areaComment, script)
+						tl::ahk::fileReaders::fileAreaIntoString(areaComment, scriptDirectPath)
 					)
 				);
 			}
 			std::filesystem::file_time_type LastTimeModified() {
-				return std::filesystem::last_write_time(script);
+				return std::filesystem::last_write_time(scriptDirectPath);
 			}
 			bool IfFileLastTimeUpdatedByThis() {
 				return LastTimeModified() == lastTimeThisUpdated;
@@ -459,6 +481,19 @@ namespace tl {
 		public:
 			std::vector<tl::ahk::BaseFunction>& GetBaseFuncListReference() {
 				return functions;
+			}
+			void Reload() {
+				UpdateAll();
+			}
+			void Turnon() {
+				Variable shutdown = GetVariableFromVector("tl_shutdown", tlVariables);
+				shutdown.value = "false";
+				UpdateAll();
+			}
+			void Suspend() {
+				Variable suspend = GetVariableFromVector("tl_suspend", tlVariables);
+				suspend.value = (suspend.value == "true") ? "false" : "true";
+				UpdateAll();
 			}
 			void Shutdown() {
 				Variable shutdown = GetVariableFromVector("tl_shutdown", tlVariables);
@@ -531,7 +566,7 @@ namespace tl {
 					tl::bce::ReplaceWithText(
 						areaComment,
 						GetFullText(),
-						script
+						scriptDirectPath
 					);
 				}
 				else {
@@ -568,14 +603,14 @@ namespace tl {
 				tl::bce::ReplaceWithText(
 					areaComment,
 					GetFullText(),
-					script
+					scriptDirectPath
 				);
 			}
 			SingleScriptRuntime(const std::string& title, const std::string& scriptDirectPath, bool startUp = true)
 				: title(title)
-				, script(scriptDirectPath)
+				, scriptDirectPath(scriptDirectPath)
 			{
-				tl::bce::validateFile(areaComment, script);
+				tl::bce::validateFile(areaComment, scriptDirectPath);
 				ReInitializeBaseVariables();
 				if (startUp) {
 					StartUp();
@@ -591,7 +626,7 @@ namespace tl {
 			void OpenScript(const std::string& title, const std::string& ahkScriptDirectPath) {
 				try
 				{
-					scripts.emplace_back(title, ahkScriptDirectPath);
+					scripts.emplace_back(title, ahkScriptDirectPath, false);
 				}
 				catch (const std::exception& e)
 				{
@@ -604,9 +639,9 @@ namespace tl {
 			void OpenAllScriptsInFolder(const std::string& folderPath) {
 				namespace fs = std::filesystem;
 				for (auto& p : fs::directory_iterator(folderPath)) {
-					std::string s = p.path().generic_string();
+					std::string s = p.path().string();
 					if (s.ends_with(".ahk")) {
-						OpenScript(fs::relative(p.path(), folderPath).generic_string(), s);
+						OpenScript(fs::relative(p.path(), folderPath).string(), s);
 					}
 				}
 			}
@@ -628,18 +663,144 @@ namespace tl {
 			~ScriptHandler() {
 				for (SingleScriptRuntime& script : scripts) {
 					script.Shutdown();
+					tl::ahk::closingFixer::AddScriptToBeFixedAtEnd(script.scriptDirectPath);
 				}
 				for (SingleScriptRuntime* script : outsideScripts) {
 					script->Shutdown();
-				}
-				Sleep(3000);
-				for (SingleScriptRuntime& script : scripts) {
-					script.FixStartStateOutsideProgram();
-				}
-				for (SingleScriptRuntime* script : outsideScripts) {
-					script->FixStartStateOutsideProgram();
+					tl::ahk::closingFixer::AddScriptToBeFixedAtEnd(script->scriptDirectPath);
 				}
 			}
 		};
+		namespace QuickScripts {
+			namespace impl {
+				std::string folderPath;
+				std::vector<SingleScriptRuntime> scripts;
+				
+				void OpenScript(const std::string& title, const std::string& ahkScriptDirectPath) {
+					try
+					{
+						scripts.emplace_back(title, ahkScriptDirectPath, false);
+					}
+					catch (const std::exception& e)
+					{
+						std::cout << e.what() << std::endl;
+					}
+				}
+				void OpenAllScriptsInFolder(const std::string& folderPath) {
+					namespace fs = std::filesystem;
+					for (auto& p : fs::directory_iterator(folderPath)) {
+						std::string s = p.path().string();
+						if (s.ends_with(".ahk")) {
+							OpenScript(fs::relative(p.path(), folderPath).string(), s);
+						}
+					}
+				}
+				void OpenAllScriptsInFolder() {
+					std::string thisPath = tl::bce::RelativeToDirectPath("tlQuickScripts");
+					OpenAllScriptsInFolder(thisPath);
+				}
+				void CopyScript(std::string from, std::string to) {
+					std::fstream base(from);
+					std::string fullText = tl::bce::PlainFullText(base);
+					base.close();
+					std::fstream newscript(to);
+					newscript << fullText;
+					newscript.close();
+				}
+				void CloseScripts() {
+					for (SingleScriptRuntime& script : scripts) {
+						script.Shutdown();
+						tl::ahk::closingFixer::AddScriptToBeFixedAtEnd(script.scriptDirectPath);
+					}
+				}
+				void CreateNewScript() {
+					std::string base = tl::bce::RelativeToDirectPath("tlQuickScripts\\tl_base.ahk");
+					std::string baseName = "NewScript";
+					std::string ending = ".ahk";
+					int cur = 1;
+					while (true) {
+						int tempCur = cur;
+						for (SingleScriptRuntime& script : scripts) {
+							std::string name = tl::filesystem::GetFileNameFromPath(script.scriptDirectPath);
+							if (name == (baseName + std::to_string(cur) + ending)) {
+								cur++;
+							}
+						}
+						if (tempCur == cur) break;
+					}
+					std::string newScriptPath = tl::bce::RelativeToDirectPath("tlQuickScripts\\" + baseName + std::to_string(cur) + ending);
+					std::filesystem::copy_file(base, newScriptPath);
+					OpenScript(baseName + std::to_string(cur) + ending, newScriptPath);
+				}
+				void DrawWindow() {
+					ImGui::Begin("QuickScripts");
+					static int selected = -1;
+					static bool DrawingSelected = false;
+					if (ImGui::Button("NewScript##QuickScripts")) {
+						CreateNewScript();
+					}
+					ImGui::SameLine();
+					if (ImGui::Button("Draw Window##QuickScripts")) {
+						DrawingSelected = !DrawingSelected;
+					}
+					if (ImGui::Button("Reload##QuickScripts") && (selected != -1)) {
+						scripts[selected].Reload();
+					}
+					ImGui::SameLine();
+					if (ImGui::Button("Start##QuickScripts") && (selected != -1)) {
+						scripts[selected].Turnon();
+					}
+					ImGui::SameLine();
+					if (ImGui::Button("Stop##QuickScripts") && (selected != -1)) {
+						scripts[selected].Shutdown();
+					}
+					ImGui::SameLine();
+					if (ImGui::Button("Suspend##QuickScripts") && (selected != -1)) {
+						scripts[selected].Suspend();
+					}
+
+					ImGui::BeginListBox("##QuickScriptsList");
+
+					for (int i = 0; i < scripts.size(); i++) {
+						bool ifSelected = false;
+						if (i == selected) ifSelected = true;
+						if (ImGui::Selectable(scripts[i].title.c_str(), ifSelected)) {
+							selected = i;
+							if (ifSelected == false) {
+								DrawingSelected = false;
+							}
+						}
+					}
+					ImGui::EndListBox();
+					if (selected != -1) {
+						if (DrawingSelected) {
+							scripts[selected].DrawWindow();
+						}
+					}
+					
+					ImGui::End();
+				}
+				//-------
+				//Publics
+				//-------
+				void StartScripts() {
+					static bool started = false;
+					if (!started) {
+						started = true;
+						tl::ig::StaticWindowDrawer::AddWindow(&DrawWindow);
+					}
+					std::string thisPath = tl::bce::RelativeToDirectPath("");
+					impl::folderPath = thisPath + "tlQuickScripts";
+					impl::OpenAllScriptsInFolder(folderPath);
+				}
+			}
+			void StartScripts() {
+				impl::StartScripts();
+				std::atexit(impl::CloseScripts);
+			}
+		}
+		namespace impl {
+			int exit = std::atexit(ahk::closingFixer::impl::FixAllScriptStartingStates);
+		}
 	}
 }

@@ -147,6 +147,7 @@
     <ClInclude Include="tlBasicCodeEditor.h" />
     <ClInclude Include="tlFFXIV.h" />
     <ClInclude Include="tlFilesystem.h" />
+    <ClInclude Include="tlImgui.h" />
     <ClInclude Include="tlInput.h" />
     <ClInclude Include="tlInputRecorder.h" />
     <ClInclude Include="tlsql.h" />

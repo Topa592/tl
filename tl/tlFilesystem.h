@@ -18,5 +18,9 @@ namespace tl {
 				return path + '\\' + relativePath;
 			}
 		};
+		std::string GetFileNameFromPath(const std::string& directFilePath) {
+			size_t start = directFilePath.rfind('\\');
+			return directFilePath.substr(start + 1);
+		}
 	}
 }

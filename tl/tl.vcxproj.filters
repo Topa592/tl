@@ -45,5 +45,8 @@
     <ClInclude Include="tlsql.h">
       <Filter>Header Files\backend</Filter>
     </ClInclude>
+    <ClInclude Include="tlImgui.h">
+      <Filter>Header Files\backend</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
