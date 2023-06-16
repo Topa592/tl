@@ -48,5 +48,8 @@
     <ClInclude Include="tlImgui.h">
       <Filter>Header Files\backend</Filter>
     </ClInclude>
+    <ClInclude Include="tlFFLOGS.h">
+      <Filter>Header Files\usingBackend</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

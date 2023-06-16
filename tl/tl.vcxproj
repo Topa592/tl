@@ -145,6 +145,7 @@
   <ItemGroup>
     <ClInclude Include="tlAHK.h" />
     <ClInclude Include="tlBasicCodeEditor.h" />
+    <ClInclude Include="tlFFLOGS.h" />
     <ClInclude Include="tlFFXIV.h" />
     <ClInclude Include="tlFilesystem.h" />
     <ClInclude Include="tlImgui.h" />
