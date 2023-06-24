@@ -12,6 +12,14 @@ namespace tl {
 		namespace keybinds {
 			static char key_confirm = VK_NUMPAD0;
 		}
+		struct Action {
+			std::string keybind;
+			std::string actionName;
+		};
+		struct Macro {
+			std::vector<std::string> lines;
+			std::string fullString;
+		};
 		class CraftMacro {
 		private:
 			std::vector<int> sleepTimes = {};
@@ -233,6 +241,76 @@ namespace tl {
 				keys.push_back(line.substr(curIndex));
 				return keys;
 			}
+			std::vector<std::string> GetCurrentKeybindNames() {
+				return { "Crafting Log", "Basic Synthesis", "Basic Touch", "Master's Mend", "Hasty Touch", "Rapid Synthesis", "Observe", "Tricks of the Trade", "Waste Not", "Veneration", "Standard Touch", "Great Strides", "Innovation", "Final Appraisal", "Waste Not II", "Byregot's Blessing", "Precise Touch", "Muscle Memory", "Careful Synthesis", "Manipulation", "Prudent Touch", "Focused Synthesis", "Focused Touch", "Reflect", "Preparatory Touch", "Groundwork", "Delicate Synthesis", "Intensive Synthesis", "Trained Eye", "Advanced Touch", "Prudent Synthesis", "Trained Finesse" };
+			}
+			bool checkForModifier(bool& shiftDown, bool& ctrlDown, bool& altDown, std::string s) {
+				if (s.find("Shift Down") != std::string::npos) shiftDown = true;
+				else if (s.find("Shift Up") != std::string::npos) shiftDown = false;
+				else if (s.find("Ctrl Down") != std::string::npos) ctrlDown = true;
+				else if (s.find("Ctrl Up") != std::string::npos) ctrlDown = false;
+				else if (s.find("Alt Down") != std::string::npos) altDown = true;
+				else if (s.find("Alt Up") != std::string::npos) altDown = false;
+				else {
+					return false;
+				}
+				return true;
+			}
+			std::vector<tl::ffxiv::Action> GetListOfActions() {
+				const std::vector<std::string> names = GetCurrentKeybindNames();
+				const std::vector<std::string> keybinds = GetCurrentKeybinds();
+				std::vector<tl::ffxiv::Action> actions;
+				if (names.size() != keybinds.size()) throw "Autocraftlist keybindNames and keybinds sizes are not same";
+				for (int i = 0; i < names.size(); i++) {
+					tl::ffxiv::Action a;
+					a.actionName = names[i];
+					a.keybind = keybinds[i];
+					actions.push_back(a);
+				}
+				return actions;
+			}
+			std::string FindKeyFromString(std::string ahkLine) {
+				std::string::size_type start = ahkLine.find("{") + 1;
+				std::string::size_type end = ahkLine.find(" ", start);
+				return ahkLine.substr(start, end-start);
+			}
+			bool IfIsTheKey(bool shiftDown, bool ctrlDown, bool altDown, std::string key, tl::ffxiv::Action action) {
+				if (action.keybind.find(key) == std::string::npos) return false;
+				bool aShift = (action.keybind.find('+') != std::string::npos);
+				if (shiftDown xor aShift) return false;
+				bool aCtrl = (action.keybind.find('^') != std::string::npos);
+				if (ctrlDown xor aCtrl) return false;
+				bool aAlt = (action.keybind.find('!') != std::string::npos);
+				if (altDown xor aAlt) return false;
+				return true;
+			}
+			std::vector<tl::ffxiv::Action> GetFunctionActions(int i) {
+				std::vector<tl::ffxiv::Action> result;
+				std::vector<tl::ffxiv::Action> listOfActions = GetListOfActions();
+				const std::vector<std::string>& linesOfFunc = functions[i].linesOfValue;
+				bool shiftDown = false;
+				bool ctrlDown = false;
+				bool altDown = false;
+				for (const std::string& s : linesOfFunc) {
+					if (s.find("Sleep") != std::string::npos) continue;
+					if (checkForModifier(shiftDown, ctrlDown, altDown, s)) continue;
+					if (s.find("Up") != std::string::npos) continue;
+					//only down actions left
+					std::string key = FindKeyFromString(s);
+					bool found = false;
+					for (tl::ffxiv::Action& a : listOfActions) {
+						if (IfIsTheKey(shiftDown, ctrlDown, altDown, key, a)) {
+							result.push_back(a);
+							found = true;
+							break;
+						}
+					}
+					if (!found) {
+						return {};
+					}
+				}
+				return result;
+			}
 			void AddNewKeybindToHistory(const std::vector<std::string>& newKeybinds) {
 				std::fstream fs("CraftingScriptKeyBindHistory.txt");
 				std::string fullText = "";
@@ -260,7 +338,7 @@ namespace tl {
 				}
 			}
 			void DrawKeybinds() {
-				static std::vector<std::string> allKeybindNames = { "Crafting Log", "Basic Synthesis", "Basic Touch", "Master's Mend", "Hasty Touch", "Rapid Synthesis", "Observe", "Tricks of the Trade", "Waste Not", "Veneration", "Standard Touch", "Great Strides", "Innovation", "Final Appraisal", "Waste Not II", "Byregot's Blessing", "Precise Touch", "Muscle Memory", "Careful Synthesis", "Manipulation", "Prudent Touch", "Focused Synthesis", "Focused Touch", "Reflect", "Preparatory Touch", "Groundwork", "Delicate Synthesis", "Intensive Synthesis", "Trained Eye", "Advanced Touch", "Prudent Synthesis", "Trained Finesse" };
+				static std::vector<std::string> allKeybindNames = this->GetCurrentKeybindNames();
 				static std::vector<std::string> allKeybinds = this->GetCurrentKeybinds();
 				if (allKeybindNames.size() != allKeybinds.size()) {
 					ImGui::Text("Invalid keybind data");
@@ -305,7 +383,48 @@ namespace tl {
 				auto& func = functions[index];
 				tl::ahk::BaseFunction& craftFunc = functions[0];
 				craftFunc.linesOfValue = func.linesOfValue;
-				this->UpdateAll(); //also runs it
+				this->UpdateAndRun();
+			}
+			void DrawNewMacroWindowWhenOpen(bool setup = false, bool setupOpen = false, std::vector<tl::ffxiv::Macro> setupMacros = {}) {
+				static bool open = false;
+				static std::vector<tl::ffxiv::Macro> macros;
+				if (setup) {
+					macros = setupMacros;
+					open = setupOpen;
+					return;
+				}
+				if (!open) return;
+				ImGui::Begin("MacroWindow##MacroCraft", &open);
+				//TODO Craft on MacroCraft window
+				//ImGui::Button("Craft##MacroCraft") {}
+				for (int i = 0; i < macros.size(); i++) {
+					std::string name = R"(Macro)" + std::to_string(i+1) + "##MacroCraft";
+					ImGui::InputTextMultiline(name.c_str(), &macros[i].fullString, {250, 190});
+				}
+				ImGui::End();
+			}
+			void RunMacroCraft(int index) {
+				std::vector<tl::ffxiv::Action> actions = this->GetFunctionActions(index);
+				std::vector<tl::ffxiv::Macro> macros;
+				tl::ffxiv::Macro curMacro;
+				int count = 1;
+				for (Action a : actions) {
+					if (count == 15) {
+						macros.push_back(curMacro);
+						curMacro.lines.clear();
+						count = 1;
+					}
+					curMacro.lines.push_back(R"(/ac ")" + a.actionName + R"(" <wait.3>)");
+					count++;
+				}
+				macros.push_back(curMacro);
+				for (auto& m : macros) {
+					for (const auto& s : m.lines) {
+						m.fullString += s + "\n";
+					}
+					m.fullString.pop_back();
+				}
+				DrawNewMacroWindowWhenOpen(true, true, macros);
 			}
 			void DrawWindow() override {
 				static int currentSelected = -1;
@@ -316,6 +435,11 @@ namespace tl {
 				if (ImGui::Button("Craft##Autocraftlist")) {
 					if (currentSelected != -1) RunCraft(currentSelected);
 				}
+				ImGui::SameLine();
+				if (ImGui::Button("MacroCraft##Autocraftlist")) {
+					if (currentSelected != -1) RunMacroCraft(currentSelected);
+				}
+				DrawNewMacroWindowWhenOpen();
 				ImGui::SameLine();
 				if (ImGui::Button("Rename##Autocraftlist")) {
 					reordering = false;
@@ -419,7 +543,7 @@ namespace tl {
 				tl::ahk::Variable craftCount = GetVariable("craftCount");
 				craftCount.value = count;
 				UpdateFunction();
-				UpdateAll();
+				UpdateAndRun();
 			}
 			const tl::ahk::BaseFunction& GetRawAHKFuncText() {
 				for (auto& func : functions) {
@@ -462,7 +586,7 @@ namespace tl {
 					sleeps[i].value = std::to_string(newSleepTimes[i]) + "000";
 				}
 				macroCount.value = std::to_string(newSleepTimes.size());
-				UpdateAll();
+				UpdateAndRun();
 			}
 
 			bool directWindowOpen = false;
@@ -475,19 +599,16 @@ namespace tl {
 					return;
 				}
 				ImGui::Text("Copy paste your ffxiv macro here\nand if you have multiple macros\njust add empty line between them");
-				if (ImGui::Button("Save")) {
+				if (ImGui::Button("Save##directmacro")) {
 					directWindowOpen = false;
 					macro = directMacroText;
 					directMacroText = "";
 					UpdateMacro();
 				}
 				ImGui::SameLine();
-				if (ImGui::Button("Close")) {
+				if (ImGui::Button("Close##directmacro")) {
 					directWindowOpen = false;
 					directMacroText = "";
-				}
-				if (ImGui::Button("SaveCraftScript")) {
-
 				}
 				ImGui::InputTextMultiline("", &directMacroText);
 				ImGui::End();

@@ -483,25 +483,25 @@ namespace tl {
 				return functions;
 			}
 			void Reload() {
-				UpdateAll();
+				UpdateAndRun();
 			}
 			void Turnon() {
 				Variable shutdown = GetVariableFromVector("tl_shutdown", tlVariables);
 				shutdown.value = "false";
-				UpdateAll();
+				UpdateAndRun();
 			}
 			void Suspend() {
 				Variable suspend = GetVariableFromVector("tl_suspend", tlVariables);
 				suspend.value = (suspend.value == "true") ? "false" : "true";
-				UpdateAll();
+				UpdateAndRun();
 			}
 			void Shutdown() {
 				Variable shutdown = GetVariableFromVector("tl_shutdown", tlVariables);
 				shutdown.value = "true";
-				UpdateAll();
+				UpdateAndRun();
 			}
 			void DrawToolbar() {
-				if (ImGui::Button("Reload")) UpdateAll();
+				if (ImGui::Button("Reload")) UpdateAndRun();
 				ImGui::SameLine();
 				if (ImGui::Button("Start")) Turnon();
 				ImGui::SameLine();
@@ -574,7 +574,7 @@ namespace tl {
 				}
 				lastTimeThisUpdated = LastTimeModified();
 			}
-			void UpdateAll() {
+			void UpdateAndRun() {
 				JustUpdateAll();
 				ReOpenScript();
 			}
@@ -614,7 +614,7 @@ namespace tl {
 				ReInitializeBaseVariables();
 				if (startUp) {
 					StartUp();
-					UpdateAll();
+					UpdateAndRun();
 				}
 			}
 		};
