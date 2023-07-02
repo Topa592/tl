@@ -34,12 +34,24 @@ namespace tl {
 			void filterDuplicates() {
 				std::vector<Event> nonDuplicates;
 				nonDuplicates.push_back(list.front());
+				struct TimeEvent {
+					int milliseconds = 0;
+					void FromString(std::string s) {
+						std::string::size_type start2 = s.find(':');
+						std::string::size_type start3 = s.find('.');
+						int minutes = std::stoi(s.substr(0, 2));
+						int seconds = std::stoi(s.substr(start2 + 1, 2));
+						int tempmilliseconds = std::stoi(s.substr(start3 + 1, 3));
+						this->milliseconds = minutes * 60 * 1000 + seconds * 1000 + tempmilliseconds;
+					}
+				};
 				for (const Event& e : list) {
-					std::string oldTime = nonDuplicates.back().time;
-					std::string newTime = e.time;
-					oldTime.pop_back();
-					newTime.pop_back();
-					if (oldTime == newTime) continue;
+					TimeEvent oldTime;
+					TimeEvent newTime;
+					oldTime.FromString(nonDuplicates.back().time);
+					newTime.FromString(e.time);
+					if (oldTime.milliseconds == newTime.milliseconds) continue;
+					if (newTime.milliseconds <= oldTime.milliseconds + 2) continue;
 					nonDuplicates.push_back(e);
 				}
 				this->list = nonDuplicates;
