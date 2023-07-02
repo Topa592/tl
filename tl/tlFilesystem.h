@@ -22,5 +22,11 @@ namespace tl {
 			size_t start = directFilePath.rfind('\\');
 			return directFilePath.substr(start + 1);
 		}
+		std::string ExeFolderPath() {
+			return std::filesystem::current_path().string();
+		}
+		std::string RelativeToDirectPath(const std::string& file) {
+			return ExeFolderPath() + '\\' + file;
+		}
 	}
 }

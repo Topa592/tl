@@ -167,7 +167,7 @@ namespace tl {
 		}
 
 		std::string RelativeToDirectPath(const std::string& file) {
-			return std::filesystem::current_path().string() + '\\' + file;
+			return tl::filesystem::RelativeToDirectPath(file);
 		}
 
 		void RunEditorRelativeToExePath(
