@@ -180,6 +180,7 @@ namespace tl {
 			lineChange,
 			comment,
 			Dropbox,
+			TextStatic,
 		};
 		struct BaseVariable {
 			std::string name = "";
@@ -207,6 +208,9 @@ namespace tl {
 					ImGui::SameLine();
 					ImGui::Text(name.c_str());
 					break;
+				case VariableType::TextStatic:
+					ImGui::Text(value.c_str());
+					break;
 				}
 			}
 			std::string toString() const {
@@ -222,11 +226,17 @@ namespace tl {
 					return value;
 				case tl::ahk::VariableType::Dropbox:
 					return ";Dropbox " + name;
+				case tl::ahk::VariableType::TextStatic:
+					return "/*\n" + value + "\n*/";
 				default:
 					return "";
 				}
 			}
 			void fromString(const std::string& s) {
+				if (this->type == VariableType::TextStatic) {
+					value = s;
+					return;
+				}
 				if (s.size() >= 1) {
 					if (s[0] == ';') {
 						type = VariableType::comment;
@@ -285,6 +295,38 @@ namespace tl {
 				}
 			}
 		};
+		namespace drawing {
+			void DrawBaseVariables(std::vector<BaseVariable>& list) {
+				bool InsideDropbox = false;
+				bool DropboxOn = false;
+				for (BaseVariable& var : list) {
+					if (var.type == VariableType::lineChange || var.type == VariableType::Dropbox) {
+						InsideDropbox = false;
+						DropboxOn = false;
+					}
+					if (DropboxOn == false && InsideDropbox == true) {
+						continue;
+					}
+					switch (var.type)
+					{
+					case VariableType::lineChange:
+						InsideDropbox = false;
+						DropboxOn = false;
+						ImGui::Separator();
+						break;
+					case VariableType::Dropbox:
+						if (ImGui::CollapsingHeader(var.name.c_str())) DropboxOn = true;
+						InsideDropbox = true;
+						break;
+					case VariableType::comment:
+						break;
+					default:
+						var.DrawBasic();
+						break;
+					}
+				}
+			}
+		}
 		struct BaseFunction {
 			std::string name = "";
 			std::vector<std::string> linesOfValue = {};
@@ -452,6 +494,24 @@ namespace tl {
 						fn.push_back(func);
 						continue;
 					}
+					if (line.starts_with("/*")) {
+						std::string s = "";
+						i++;
+						while (i < linesOfText.size()) {
+							line = linesOfText[i];
+							if (line.starts_with("*/")) {
+								break;
+							}
+							s += line + "\n";
+							i++;
+						}
+						s.pop_back(); //removes last linechange
+						BaseVariable var;
+						var.type = VariableType::TextStatic;
+						var.fromString(s);
+						base.push_back(var);
+						continue;
+					}
 					BaseVariable var;
 					var.fromString(line);
 
@@ -518,35 +578,7 @@ namespace tl {
 				}
 			}
 			void DrawVariables() {
-				bool InsideDropbox = false;
-				bool DropboxOn = false;
-				for (BaseVariable& var : baseVariables) {
-					if (var.type == VariableType::lineChange || var.type == VariableType::Dropbox) {
-						InsideDropbox = false;
-						DropboxOn = false;
-					}
-					if (DropboxOn == false && InsideDropbox == true) {
-						continue;
-					}
-					switch (var.type)
-					{
-					case VariableType::normal:
-					case VariableType::trueFalse:
-						var.DrawBasic();
-						break;
-					case VariableType::lineChange:
-						InsideDropbox = false;
-						DropboxOn = false;
-						ImGui::Separator();
-						break;
-					case VariableType::Dropbox:
-						if (ImGui::CollapsingHeader(var.name.c_str())) DropboxOn = true;
-						InsideDropbox = true;
-						break;
-					default:
-						break;
-					}
-				}
+				drawing::DrawBaseVariables(baseVariables);
 			}
 			virtual void DrawWindow() {
 				ImGui::Begin(title.c_str());
