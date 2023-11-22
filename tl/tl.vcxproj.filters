@@ -51,5 +51,8 @@
     <ClInclude Include="tlFFLOGS.h">
       <Filter>Header Files\usingBackend</Filter>
     </ClInclude>
+    <ClInclude Include="tlnonomine.h">
+      <Filter>Header Files\backend</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

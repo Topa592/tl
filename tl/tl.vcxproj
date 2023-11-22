@@ -151,6 +151,7 @@
     <ClInclude Include="tlImgui.h" />
     <ClInclude Include="tlInput.h" />
     <ClInclude Include="tlInputRecorder.h" />
+    <ClInclude Include="tlnonomine.h" />
     <ClInclude Include="tlsql.h" />
     <ClInclude Include="tlUtilities.h" />
   </ItemGroup>
