@@ -232,9 +232,9 @@ namespace tl {
 				line = line.substr(line.find('|') + 1);
 				std::vector<std::string> keys = {};
 				std::string curKey = "";
-				int curIndex = 0;
+				size_t curIndex = 0;
 				while (line.find('|', curIndex) != std::string::npos) {
-					int endIndex = line.find('|', curIndex);
+					size_t endIndex = line.find('|', curIndex);
 					keys.push_back(line.substr(curIndex, endIndex - curIndex));
 					curIndex = endIndex + 1;
 				}
@@ -320,7 +320,7 @@ namespace tl {
 					lastLine = line;
 				}
 				fs.close();
-				int pos = lastLine.find('|');
+				size_t pos = lastLine.find('|');
 				int count = std::stoi(lastLine.substr(0, pos));
 				count++;
 				fullText += std::to_string(count);
