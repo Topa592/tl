@@ -12,5 +12,5 @@ it solved my problem of needing to write ton of autohotkey code just to swap bas
 ![screenshot](https://user-images.githubusercontent.com/47034446/180777929-a969358f-989f-4c97-9306-8b86780521ff.png)
 #### from this part autohotkey script
 ![image](https://user-images.githubusercontent.com/47034446/180778277-ddc94dbb-90c6-4a7f-8c34-0cad2bbe938d.png)
-#### latest version 13.3.2023
+#### version 13.3.2023
 ![image](https://user-images.githubusercontent.com/47034446/224603378-54b82af3-e18a-45e2-923c-6d09a801f290.png)
